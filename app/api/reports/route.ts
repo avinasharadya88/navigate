@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
     if (!isInsideSouthZone(latitude, longitude)) {
       return Response.json(
-        { error: "The report must be inside the official BBMP South Zone boundary" },
+        { error: "The report must be inside Bangalore Urban or Bangalore Rural district" },
         { status: 400 },
       );
     }

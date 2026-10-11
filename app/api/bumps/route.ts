@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     });
 
     if (!valid.length) {
-      return Response.json({ error: "No valid South Zone bump events were supplied" }, { status: 400 });
+      return Response.json({ error: "No valid Bangalore Urban or Rural bump events were supplied" }, { status: 400 });
     }
     await getDb().insert(bumpEvents).values(valid);
     return Response.json({ accepted: valid.length }, { status: 201 });
