@@ -83,7 +83,7 @@ export const BANGALORE_LOCATIONS: BangaloreLocation[] = [
 
   // --- Anekal Taluk (Bangalore Urban District) ---
   { id: "anekal-town", name: "Anekal Town (Bus Stand / Taluk)", district: "Bangalore Urban", area: "Anekal Taluk", lat: 12.7108, lng: 77.6961, aliases: ["Anekal Circle", "Taluk Hospital"] },
-  { id: "attibele-toll", name: "Attibele Border & Toll Gate", district: "Bangalore Urban", area: "Anekal Taluk", lat: 77.7719 ? 12.7797 : 12.7797, lng: 77.7719, aliases: ["Tamil Nadu Border", "Hosur Highway"] },
+  { id: "attibele-toll", name: "Attibele Border & Toll Gate", district: "Bangalore Urban", area: "Anekal Taluk", lat: 12.7797, lng: 77.7719, aliases: ["Tamil Nadu Border", "Hosur Highway"] },
   { id: "chandapura", name: "Chandapura Circle (Anekal Road)", district: "Bangalore Urban", area: "Anekal Taluk", lat: 12.7937, lng: 77.7011, aliases: ["Alliance University", "Surya City"] },
   { id: "jigani-industrial", name: "Jigani Industrial Area & APC Circle", district: "Bangalore Urban", area: "Anekal Taluk", lat: 12.7825, lng: 77.6410, aliases: ["Bommasandra Link Road", "Granite Hub"] },
   { id: "sarjapur-town", name: "Sarjapur Town / Circle", district: "Bangalore Urban", area: "Anekal Taluk", lat: 12.8601, lng: 77.7876, aliases: ["Bagalur Road Junction", "Dommasandra"] },

@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const severity = String(body.severity ?? "");
     const roadLabel = String(body.roadLabel ?? "Pinned road location")
       .trim()
-      .slice(0, 100);
+      .slice(0, 100) || "Pinned road location";
     const note = String(body.note ?? "").trim().slice(0, 240);
 
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {

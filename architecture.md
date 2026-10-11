@@ -119,7 +119,7 @@ Keyboard behavior:
 - Escape closes the dropdown.
 - Clicking outside closes the dropdown.
 
-The start input exposes a GPS control. Map clicks remain available for either point. `findClosestLocation` assigns the nearest catalogue label to a map-selected point when the nearest entry is within 15 kilometres; otherwise the UI shows rounded coordinates.
+The start input exposes a GPS control. Map clicks remain available for either point. `findClosestLocation` assigns the nearest catalogue label to a map-selected point when the nearest entry is within 1.6 kilometres; otherwise the UI shows rounded coordinates.
 
 The catalogue is local data, not geocoding. Free text alone does not create a coordinate.
 

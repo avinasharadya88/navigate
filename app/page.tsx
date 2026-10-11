@@ -104,6 +104,20 @@ function formatDuration(seconds: number) {
   return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
 }
 
+function escapeHtml(value: string) {
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[character] ?? character,
+  );
+}
+
 function AppMap({
   tab,
   start,
@@ -283,8 +297,8 @@ function AppMap({
         fillOpacity: 0.95,
       })
         .bindPopup(
-          `<strong>${meta.label}</strong><br>${report.roadLabel}${
-            report.note ? `<br>${report.note.replace(/[<>]/g, "")}` : ""
+          `<strong>${meta.label}</strong><br>${escapeHtml(report.roadLabel)}${
+            report.note ? `<br>${escapeHtml(report.note)}` : ""
           }`,
         )
         .addTo(group);
@@ -334,14 +348,9 @@ function AppMap({
   );
 }
 
-function getStoredUser(): AuthUser | null {
+function getStoredUserSnapshot() {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("nsr_user_session");
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
-  } catch {
-    return null;
-  }
+  return localStorage.getItem("nsr_user_session");
 }
 
 function subscribeUser(onStoreChange: () => void) {
@@ -350,7 +359,22 @@ function subscribeUser(onStoreChange: () => void) {
 }
 
 export default function Home() {
-  const storedUser = useSyncExternalStore(subscribeUser, getStoredUser, () => null);
+  const storedUserSnapshot = useSyncExternalStore(
+    subscribeUser,
+    getStoredUserSnapshot,
+    () => null,
+  );
+  const storedUser = useMemo(() => {
+    if (!storedUserSnapshot) return null;
+    try {
+      const parsed = JSON.parse(storedUserSnapshot) as AuthUser;
+      return parsed?.name && (parsed.role === "guest" || parsed.role === "commuter")
+        ? parsed
+        : null;
+    } catch {
+      return null;
+    }
+  }, [storedUserSnapshot]);
   const [sessionUser, setSessionUser] = useState<AuthUser | null | undefined>(undefined);
   const authUser = sessionUser !== undefined ? sessionUser : storedUser;
 
@@ -364,7 +388,7 @@ export default function Home() {
   const [reports, setReports] = useState<Report[]>([]);
   const [bumps, setBumps] = useState<Bump[]>([]);
   const [routes, setRoutes] = useState<RouteOption[]>([]);
-  const [routeState, setRouteState] = useState("Select two points to compare routes");
+  const [routeState, setRouteState] = useState("Ready to compare routes");
   const [severity, setSeverity] = useState<Severity>("bumpy");
   const [roadLabel, setRoadLabel] = useState("");
   const [note, setNote] = useState("");
@@ -1042,7 +1066,7 @@ export default function Home() {
             onMapPoint={handleMapPoint}
           />
           <div className="source-bar">
-            <span>Boundary: Survey of India / KSRSAC, Bengaluru Urban & Rural Districts</span>
+            <span>Prototype boundary: bundled Bengaluru Urban & Rural coverage</span>
             <span>Basemap: OpenStreetMap</span>
             <span className="prototype-badge">Bengaluru Urban & Rural</span>
           </div>
