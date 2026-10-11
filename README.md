@@ -84,6 +84,18 @@ Traditional navigation platforms (Google Maps, Apple Maps) optimize almost exclu
 - **Live Observability**: Real-time breakdown of total community reports, passive vibration signals, and critical "Not drivable" alerts.
 - **Recent Feed**: Transparent log of recent observations with timestamps and condition markers across both districts.
 
+### 7. 🎨 Apple HIG Design & Dynamic Theme Switching (Dark, Light, System Default)
+- **Apple Human Interface Ergonomics**: Refined to the aesthetics and tactile feedback of Apple designs:
+  - **Typography**: Precision SF Pro display and text typographic hierarchy with optical letter-spacing.
+  - **Glassmorphism Materials**: Translucent frosted glass headers, floating toolbars, and dropdowns (`backdrop-filter: blur(24px) saturate(190%)`).
+  - **Continuous Curves & Micro-Interactions**: Apple squircle radii (`rounded-2xl`, `rounded-3xl`), hairline borders, ambient multi-layer drop shadows, and active touch scale effects (`active:scale-[0.98]`).
+  - **Apple Maps Dark Mode Calibration**: Intelligent map tile shader inversion ensures the map seamlessly transitions to an authentic Apple Maps dark mode.
+- **Three-Way Appearance Switcher**:
+  - ☀️ **Light Mode**: Crisp Apple `#F5F5F7` canvas, elevated white cards, soft ambient shadows, and crisp typography.
+  - 🌙 **Dark Mode**: True Apple OLED black (`#000000`), elevated `#1C1C1E` dark surfaces, and high-vibrancy semantic accents.
+  - 💻 **System Default**: Automatically syncs in real-time with the commuter's device appearance (`prefers-color-scheme`).
+  - **Instant Access**: Interactive segmented control accessible directly from the top navigation bar and the login portal.
+
 ---
 
 ## 🛠️ How It Works

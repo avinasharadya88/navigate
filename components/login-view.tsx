@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ArrowRight, Bike, CheckCircle2, KeyRound, Lock, ShieldCheck, Sparkles, User, UserCheck } from "lucide-react";
+import { ThemeSwitcher } from "./theme-switcher";
+
 
 export type AuthUser = {
   name: string;
@@ -58,7 +60,11 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
 
   return (
     <div className="login-page-container">
+      <div className="login-top-bar">
+        <ThemeSwitcher />
+      </div>
       <div className="login-card-backdrop">
+
         <div className="login-header-section">
           <div className="login-brand-logo">
             <Bike size={32} />

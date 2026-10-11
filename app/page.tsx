@@ -25,6 +25,7 @@ import { BANGALORE_LOCATIONS, type BangaloreRoad } from "../lib/bangalore-data";
 import { LocationSearchInput } from "../components/location-search-input";
 import { RoadSearchInput } from "../components/road-search-input";
 import { LoginView, type AuthUser } from "../components/login-view";
+import { ThemeSwitcher } from "../components/theme-switcher";
 
 type LatLng = { lat: number; lng: number };
 type Tab = "explore" | "report" | "ride" | "ops";
@@ -42,9 +43,10 @@ const DEFAULT_END_LABEL = "Yelahanka New Town";
 
 const severityMeta: Record<Severity, { label: string; color: string; penalty: number }> = {
   rough: { label: "Rough", color: "#d89a2b", penalty: 8 },
-  bumpy: { label: "Bumpy", color: "#df6f2d", penalty: 15 },
-  not_drivable: { label: "Not drivable", color: "#d94b52", penalty: 35 },
+  bumpy: { label: "Bumpy", color: "#ff9500", penalty: 15 },
+  not_drivable: { label: "Not drivable", color: "#ff3b30", penalty: 35 },
 };
+
 
 function insideBounds(point: LatLng) {
   return isInsideBangalore(point.lat, point.lng);
@@ -169,23 +171,23 @@ function AppMap({
             const props = feature?.properties as Record<string, string> | undefined;
             if (props?.category === "urban") {
               return {
-                color: "#246e5a",
+                color: "#34c759",
                 weight: 2.5,
-                fillColor: "#54a98b",
+                fillColor: "#34c759",
                 fillOpacity: 0.08,
               };
             }
             if (props?.category === "rural") {
               return {
-                color: "#40798c",
+                color: "#0071e3",
                 weight: 2,
-                fillColor: "#70a9a1",
-                fillOpacity: 0.05,
+                fillColor: "#0071e3",
+                fillOpacity: 0.06,
                 dashArray: "6 5",
               };
             }
             return {
-              color: "#173f38",
+              color: "#34c759",
               weight: 1.5,
               fillOpacity: 0,
               dashArray: "3 4",
@@ -195,7 +197,7 @@ function AppMap({
             const props = feature?.properties as Record<string, unknown> | undefined;
             if (props?.name) {
               const taluks = Array.isArray(props.taluks) ? props.taluks.join(", ") : "";
-              const talukText = taluks ? `<br><small style="color:#64736f">Taluks: ${taluks}</small>` : "";
+              const talukText = taluks ? `<br><small style="color:var(--muted)">Taluks: ${taluks}</small>` : "";
               layer.bindTooltip(`<strong>${String(props.name)}</strong>${talukText}`, {
                 sticky: true,
               });
@@ -240,8 +242,8 @@ function AppMap({
       L.circleMarker([start.lat, start.lng], {
         radius: 8,
         color: "#fff",
-        weight: 3,
-        fillColor: "#173f38",
+        weight: 2.5,
+        fillColor: "#34c759",
         fillOpacity: 1,
       })
         .bindTooltip("Start Point")
@@ -252,8 +254,8 @@ function AppMap({
       L.circleMarker([end.lat, end.lng], {
         radius: 8,
         color: "#fff",
-        weight: 3,
-        fillColor: "#1d77d2",
+        weight: 2.5,
+        fillColor: "#0071e3",
         fillOpacity: 1,
       })
         .bindTooltip("Destination")
@@ -264,8 +266,8 @@ function AppMap({
       L.circleMarker([reportPoint.lat, reportPoint.lng], {
         radius: 9,
         color: "#fff",
-        weight: 3,
-        fillColor: "#df6f2d",
+        weight: 2.5,
+        fillColor: "#ff9500",
         fillOpacity: 1,
       })
         .bindTooltip("Reported Location (Click map to change)")
@@ -276,9 +278,9 @@ function AppMap({
       L.polyline(
         route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
         {
-          color: index === 0 ? "#246e5a" : "#4b76c5",
-          opacity: index === 0 ? 0.95 : 0.68,
-          weight: index === 0 ? 7 : 5,
+          color: index === 0 ? "#34c759" : "#0071e3",
+          opacity: index === 0 ? 0.95 : 0.72,
+          weight: index === 0 ? 6.5 : 5,
         },
       )
         .bindTooltip(
@@ -307,10 +309,10 @@ function AppMap({
     bumps.forEach((bump) => {
       L.circle([bump.latitude, bump.longitude], {
         radius: Math.min(55, 14 + bump.intensity * 4),
-        color: "#7b52a1",
-        weight: 1,
-        fillColor: "#9b70bf",
-        fillOpacity: 0.2,
+        color: "#af52de",
+        weight: 1.5,
+        fillColor: "#bf5af2",
+        fillOpacity: 0.22,
       })
         .bindTooltip(`Anonymous ride signal · ${bump.intensity.toFixed(1)} m/s²`)
         .addTo(group);
@@ -731,16 +733,19 @@ export default function Home() {
           ))}
         </nav>
 
-        {/* Topbar User Indicator and Logout button */}
-        <div className="user-status-group">
-          <div className={`user-chip ${authUser.role === "commuter" ? "commuter" : ""}`}>
-            {authUser.role === "guest" ? <ShieldCheck size={14} /> : <UserCheck size={14} />}
-            <span>{authUser.name} ({authUser.role === "guest" ? "Guest User" : "Commuter"})</span>
+        {/* Topbar Right Action Cluster: Theme Switcher & User Status */}
+        <div className="topbar-trailing">
+          <ThemeSwitcher />
+          <div className="user-status-group">
+            <div className={`user-chip ${authUser.role === "commuter" ? "commuter" : ""}`}>
+              {authUser.role === "guest" ? <ShieldCheck size={14} /> : <UserCheck size={14} />}
+              <span>{authUser.name} ({authUser.role === "guest" ? "Guest User" : "Commuter"})</span>
+            </div>
+            <button className="logout-btn" onClick={handleLogout} title="Switch User or return to Login">
+              <LogOut size={13} />
+              <span>Logout</span>
+            </button>
           </div>
-          <button className="logout-btn" onClick={handleLogout} title="Switch User or return to Login">
-            <LogOut size={13} />
-            <span>Logout</span>
-          </button>
         </div>
       </header>
 

@@ -24,12 +24,15 @@ The operations view is intended for people reviewing road condition coverage and
 
 ## 3. Goals for this version
 
-- Let riders type and select both the start point and destination.
+- Elevate the UI/UX to Apple Human Interface Guidelines (HIG) design standards across all screens and components.
+- Provide a three-way appearance mode switcher (Light, Dark, and System Default) that users can switch at any time.
+- Let riders type and select both the start point and destination with Apple-style search autocomplete.
 - Cover the Bengaluru Urban and Bengaluru Rural district area in the map and server validation.
 - Let riders find a road by name from a searchable report dropdown.
-- Show an access page before the application, with a prominent guest option.
+- Show an access page before the application, with a prominent guest option and theme toggle.
 - Preserve anonymous road reporting and foreground motion sensing.
 - Continue comparing smoothest and fastest route alternatives.
+
 
 ## 4. Out of scope
 
@@ -144,18 +147,34 @@ No evidence does not prove that a road is smooth. The current algorithm gives an
 
 Known privacy gap: `GET /api/bumps` returns session IDs and timestamps. Those fields can be used to group events from one ride. The public response should omit the session ID before wider use.
 
-## 13. Acceptance criteria for this update
+## 13. Apple design system and appearance modes
 
-1. The first screen offers guest access and a clearly marked placeholder credential form.
+The interface adheres to Apple Human Interface Guidelines (HIG) standards:
+
+- **Typography**: Apple SF Pro typographic hierarchy with optical letter-spacing, tight title tracking, and clear structural contrast.
+- **Glassmorphic materials**: Frosted translucent glass headers, floating navigation pills, search dropdowns, and map overlays (`backdrop-filter: blur(24px) saturate(190%)`).
+- **Tactile geometry**: Continuous squircle corner curvature (`rounded-2xl`, `rounded-3xl`), hairline 1px borders, ambient multi-layer drop shadows, and subtle active press states (`active:scale-[0.98]`).
+- **Dynamic theme system**:
+  - **Light mode**: Crisp `#F5F5F7` system background, elevated white cards, soft ambient shadows, and dark ink typography.
+  - **Dark mode**: True OLED black (`#000000`), elevated dark materials (`#1C1C1E`), high-vibrancy semantic accents, and specialized Leaflet raster tile shader calibration for an authentic Apple Maps dark mode.
+  - **System default**: Automatically syncs with the device's OS-level dark/light mode preference (`prefers-color-scheme`).
+  - **Segmented control**: Accessible Apple-style segmented pill control in the topbar header and login access screen with keyboard navigation and zero-flicker hydration.
+
+## 14. Acceptance criteria for this update
+
+1. The first screen offers guest access and a clearly marked placeholder credential form, with theme switcher accessible.
 2. Guest access opens all four application tabs without a registration step.
-3. Start and destination can each be selected from a typed location dropdown.
-4. The map displays Bengaluru Urban and Bengaluru Rural coverage.
-5. Client and server reject report and sensor points outside the accepted coverage area.
-6. The report form filters road names and fills a selected road's label and representative position.
-7. Existing route scoring, anonymous reports, ride sensing, and operations views continue to work.
-8. A production build completes successfully before deployment.
+3. Users can switch between Light, Dark, and System Default appearance modes via the segmented control, persisting across reloads.
+4. The UI exhibits Apple Human Interface Guidelines aesthetics (SF Pro typography, continuous corner curves, glassmorphism, refined materials).
+5. Start and destination can each be selected from a typed location dropdown.
+6. The map displays Bengaluru Urban and Bengaluru Rural coverage with Apple Maps styled dark/light rendering.
+7. Client and server reject report and sensor points outside the accepted coverage area.
+8. The report form filters road names and fills a selected road's label and representative position.
+9. Existing route scoring, anonymous reports, ride sensing, and operations views continue to work.
+10. A production build and linting complete successfully before deployment.
 
-## 14. Known gaps
+
+## 15. Known gaps
 
 1. The access page is not security. API endpoints have no authentication, rate limiting, or moderation.
 2. The location and road catalogues are static. They do not query a live geocoder and will become outdated unless maintained.
@@ -166,7 +185,7 @@ Known privacy gap: `GET /api/bumps` returns session IDs and timestamps. Those fi
 7. Unobserved routes appear to have a perfect score.
 8. The operations counts are capped by API response limits.
 
-## 15. Next steps
+## 16. Next steps
 
 - Replace placeholder access with a deliberate choice: remain guest-only or add real authentication.
 - Load verified Bengaluru Urban and Rural district boundaries from an authoritative source.
@@ -176,8 +195,9 @@ Known privacy gap: `GET /api/bumps` returns session IDs and timestamps. Those fi
 - Move to routing suitable for two-wheelers and add licensed traffic data when available.
 - Remove ride session IDs from public API responses.
 
-## 16. Data and attribution
+## 17. Data and attribution
 
 - Basemap and road network: OpenStreetMap contributors
 - Route alternatives: Project OSRM public service
 - District coverage files: generated and bundled in this repository; they require authoritative geometry validation before production use
+

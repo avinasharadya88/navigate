@@ -42,6 +42,8 @@ The access screen is a client-side product flow. It does not protect the Worker 
 | Layer | Repository version or implementation |
 | --- | --- |
 | UI | React 19.2.6, Next.js 16.3.4 App Router conventions |
+| Theming | next-themes 0.4.6 with ThemeProvider, class-based attribute, and system synchronization |
+| Design System | Apple Human Interface Guidelines (SF Pro typography, continuous squircle curvature, frosted glass materials, Apple semantic color system) |
 | Runtime and build | vinext 1.0.0-beta.5 on Vite 8.0.13 |
 | Hosting | Cloudflare Workers through `@cloudflare/vite-plugin` |
 | Database | Cloudflare D1 with Drizzle ORM 0.45.2 |
@@ -59,10 +61,12 @@ app/
   api/reports/route.ts          read and create road reports
   api/bumps/route.ts            read and create bump events
   page.tsx                      application state, map, scoring, and sensors
-  layout.tsx                    document metadata
-  globals.css                   application and access-page styles
+  layout.tsx                    document metadata and ThemeProvider
+  globals.css                   Apple Design System tokens and theme styles
 components/
-  login-view.tsx                guest and placeholder credential screen
+  theme-provider.tsx            next-themes client context provider
+  theme-switcher.tsx            Apple-style segmented control theme switcher
+  login-view.tsx                guest and placeholder credential screen with theme toggle
   location-search-input.tsx     typed start and destination search
   road-search-input.tsx         report road search
 db/
@@ -101,7 +105,24 @@ When there is no stored user, `Home` returns `LoginView` and does not render the
 
 There is no authentication endpoint, token, signed cookie, or server-side session. The placeholder form accepts any password of four or more characters, and blank fields use the displayed demo values. Logout removes the local value.
 
-## 5. Typed location selection
+## 5. Apple design system and theme architecture
+
+The app incorporates the Apple Human Interface Guidelines design system:
+
+### 5.1 Appearance modes & theme switching
+- **Provider**: `ThemeProvider` in `app/layout.tsx` wraps the document using `next-themes` with `attribute="class"`, `defaultTheme="system"`, and `enableSystem={true}`.
+- **Modes**:
+  - **Light mode (`.light`)**: `#F5F5F7` background, elevated white surfaces, subtle hairline borders (`rgba(0, 0, 0, 0.08)`), and high-contrast typography.
+  - **Dark mode (`.dark`)**: True OLED black (`#000000`), elevated dark cards (`#1C1C1E`), vibrant semantic green/blue/orange accents, and dark-mode map tile shader inversion.
+  - **System default**: Evaluates the OS-level `prefers-color-scheme` in real-time.
+- **Segmented switcher (`ThemeSwitcher`)**: Uses `useSyncExternalStore` for hydration-safe rendering to prevent server/client mismatches, providing interactive pill buttons for Light, Dark, and System modes.
+
+### 5.2 Materials and micro-interactions
+- **Materials**: Frosted glass panels (`backdrop-filter: blur(24px) saturate(190%)`) applied to topbar, dropdowns, and floating map widgets.
+- **Geometry**: Continuous squircle curvature (`border-radius: 12px` to `24px`), tactile touch states (`active:scale-[0.985]`), and multi-layer soft drop shadows.
+- **Map Dark Mode**: `.dark .map .leaflet-tile-pane` utilizes CSS filter transformations (`invert(100%) hue-rotate(180deg) brightness(88%) contrast(92%) saturate(75%)`) to present OpenStreetMap raster tiles as high-contrast Apple Maps dark tiles.
+
+## 6. Typed location selection
 
 `LocationSearchInput` receives the selected coordinate and label from `Home`. It filters `BANGALORE_LOCATIONS` by:
 
@@ -123,7 +144,7 @@ The start input exposes a GPS control. Map clicks remain available for either po
 
 The catalogue is local data, not geocoding. Free text alone does not create a coordinate.
 
-## 6. Road search for reports
+## 7. Road search for reports
 
 `RoadSearchInput` filters `BANGALORE_ROADS` by road name, corridor, and district. An empty query displays the full catalogue. Results are grouped only by their existing order and show an Urban, Rural, or Both badge.
 
@@ -135,7 +156,7 @@ Selecting a result:
 
 The rider can then tap the map to refine the point. Custom labels remain valid because the component passes any typed value to `roadLabel` even when the filtered list is empty.
 
-## 7. Map and geographic validation
+## 8. Map and geographic validation
 
 `AppMap` dynamically imports Leaflet so it does not run during server rendering. It loads OpenStreetMap tiles, then fetches `/data/bangalore-districts.geojson`.
 
@@ -156,7 +177,7 @@ This fallback makes the accepted area larger than the drawn district shapes. The
 - `public/data/bangalore-districts.geojson` for the map;
 - `lib/bangalore-districts.json` for validation.
 
-## 8. Route comparison and scoring
+## 9. Route comparison and scoring
 
 The browser requests:
 
@@ -187,7 +208,7 @@ Routes sort by score descending, then duration ascending. The fastest route is c
 
 The distance check uses sampled vertices, not line segments. It can miss an observation that is close to a long segment but farther from the sampled vertices.
 
-## 9. Road reports API
+## 10. Road reports API
 
 ### `GET /api/reports`
 
@@ -199,7 +220,7 @@ Accepts latitude, longitude, severity, road label, and note. It requires finite 
 
 The road label is trimmed to 100 characters and the note to 240. A successful insert returns the created report with status 201.
 
-## 10. Bump events API
+## 11. Bump events API
 
 ### `GET /api/bumps`
 
@@ -217,7 +238,7 @@ The API clamps:
 
 If no entry survives validation, the endpoint returns status 400. Otherwise it inserts the valid events and returns the accepted count with status 201.
 
-## 11. Ride sensing
+## 12. Ride sensing
 
 The browser requests high-accuracy geolocation and listens for `devicemotion`. On iOS it calls `DeviceMotionEvent.requestPermission()` when available.
 
@@ -227,7 +248,7 @@ An event is sent only when intensity is at least 2.8 m/s², accuracy is 80 metre
 
 Each accepted event is a separate request. There is no local queue, retry buffer, or background worker. Lost connectivity can therefore drop sensor events.
 
-## 12. Data model
+## 13. Data model
 
 ```text
 road_reports
@@ -252,7 +273,7 @@ bump_events
 
 There are no spatial or timestamp indexes. Current queries read the newest fixed number of rows, while route proximity calculations happen in the browser.
 
-## 13. Security and privacy boundaries
+## 14. Security and privacy boundaries
 
 The local access screen is not an authorization boundary. Both APIs accept requests without a session, and the Worker never reads `nsr_user_session`.
 
@@ -262,7 +283,7 @@ Report coordinates are not rounded on the server. Bump coordinates are rounded o
 
 Neither write endpoint has rate limiting, duplicate detection, moderation, or deletion support.
 
-## 14. External dependencies
+## 15. External dependencies
 
 | Service | Use | Current limitation |
 | --- | --- | --- |
@@ -273,7 +294,7 @@ Neither write endpoint has rate limiting, duplicate detection, moderation, or de
 
 The location and road dropdowns make no external request.
 
-## 15. Build and local development
+## 16. Build and local development
 
 ```bash
 git clone https://github.com/avinasharadya88/navigate.git
@@ -293,7 +314,7 @@ node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1
 
 Real motion testing requires a supported phone browser and a secure origin.
 
-## 16. Recommended technical work
+## 17. Recommended technical work
 
 1. Replace the generated coverage shapes and fallback envelope with authoritative district geometry.
 2. Decide whether the access page remains guest-only or becomes real authentication. If authentication is added, enforce it on both API routes.
