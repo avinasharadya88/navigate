@@ -1,6 +1,6 @@
 # Namma Smooth Roads
 
-Namma Smooth is a web prototype that helps two-wheeler commuters compare the fastest route with the smoother route inside the official BBMP South Zone boundary.
+Namma Smooth Roads is a web prototype that helps two-wheeler commuters compare the fastest route with the smoother route inside the official BBMP South Zone boundary.
 
 The app combines mapped road reports, anonymous rider input, route geometry, traffic context, and optional iPhone motion sensing. It is designed as a free and open-data prototype before investing in licensed traffic feeds or native mobile apps.
 

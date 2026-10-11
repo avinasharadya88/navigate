@@ -247,7 +247,7 @@ export default function Home() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand" aria-label="Namma Smooth home"><span className="brand-mark"><Bike size={21} /></span><span><strong>Namma Smooth</strong><small>BBMP South Zone</small></span></div>
+      <div className="brand" aria-label="Namma Smooth Roads home"><span className="brand-mark"><Bike size={21} /></span><span><strong>Namma Smooth Roads</strong><small>BBMP South Zone</small></span></div>
       <nav className="nav-tabs" aria-label="Main navigation">
         {([ ["explore", "Explore", RouteIcon], ["report", "Report", MapPin], ["ride", "Ride", Radio], ["ops", "Operations", BarChart3] ] as const).map(([value, label, Icon]) => <button key={value} className={tab === value ? "active" : ""} onClick={() => setTab(value)}><Icon size={17} />{label}</button>)}
       </nav>
