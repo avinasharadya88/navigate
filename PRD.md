@@ -194,6 +194,7 @@ The interface adheres to Apple Human Interface Guidelines (HIG) standards:
 - Separate route confidence from the comfort score.
 - Move to routing suitable for two-wheelers and add licensed traffic data when available.
 - Remove ride session IDs from public API responses.
+- Share the collective feedback to BBMP, BDA and other regulatory bodies who maintains the roads on a pre-set frequency.
 
 ## 17. Data and attribution
 
