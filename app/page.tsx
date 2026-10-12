@@ -354,7 +354,7 @@ function AppMap({
   }, [start, end, reportPoint, reports, bumps, routes, tab]);
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-surface-container-lowest">
+    <div className="relative z-0 w-full h-full overflow-hidden bg-surface-container-lowest">
       {/* 3D Perspective Tilt Container */}
       <div
         className={`w-full h-full transition-transform duration-700 ease-out ${
@@ -469,8 +469,12 @@ export default function Home() {
   const lastBumpRef = useRef(0);
   const rideStartRef = useRef(0);
   const sessionRef = useRef("");
+  const ignoreMapClicksUntilRef = useRef(0);
 
   function handleLoginSuccess(user: AuthUser) {
+    // The map mounts under the pointer that activated Guest mode. Ignore that
+    // finishing gesture so it cannot replace the default route endpoints.
+    ignoreMapClicksUntilRef.current = Date.now() + 500;
     try {
       localStorage.setItem("nsr_user_session", JSON.stringify(user));
     } catch {}
@@ -525,6 +529,7 @@ export default function Home() {
 
   const handleMapPoint = useCallback(
     (point: LatLng) => {
+      if (Date.now() < ignoreMapClicksUntilRef.current) return;
       if (!insideBounds(point)) {
         setNotice("That point is outside Bangalore Urban or Bangalore Rural district.");
         return;
@@ -1439,7 +1444,7 @@ export default function Home() {
           </div>
 
           {/* TOP-RIGHT: Adaptive Map Control Stack & Layers */}
-          <div className="absolute top-4 right-4 z-30 flex flex-col gap-2 items-end pointer-events-auto">
+          <div className="absolute top-4 right-4 z-30 hidden sm:flex flex-col gap-2 items-end pointer-events-auto">
             {/* North Reset & 3D Pitch View Toggle */}
             <div className="p-1 rounded-2xl bg-surface-container-low/85 backdrop-blur-2xl border border-outline-variant/40 shadow-xl flex flex-col gap-1">
               <button
