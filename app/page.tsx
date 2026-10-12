@@ -9,16 +9,25 @@ import {
   BarChart3,
   Bike,
   CircleStop,
+  Compass,
   Gauge,
   Info,
+  Layers,
   LocateFixed,
   LogOut,
   MapPin,
+  Menu,
+  Minus,
+  Navigation2,
+  Plus,
   Radio,
   Route as RouteIcon,
+  Search,
   Send,
   ShieldCheck,
   UserCheck,
+  X,
+  Zap,
 } from "lucide-react";
 import { isInsideBangalore } from "../lib/bangalore-bounds";
 import { BANGALORE_LOCATIONS, type BangaloreRoad } from "../lib/bangalore-data";
@@ -42,11 +51,10 @@ const DEFAULT_START_LABEL = "Kempegowda Bus Station (Majestic)";
 const DEFAULT_END_LABEL = "Yelahanka New Town";
 
 const severityMeta: Record<Severity, { label: string; color: string; penalty: number }> = {
-  rough: { label: "Rough", color: "#d89a2b", penalty: 8 },
+  rough: { label: "Rough", color: "#ffa11a", penalty: 8 },
   bumpy: { label: "Bumpy", color: "#ff9500", penalty: 15 },
-  not_drivable: { label: "Not drivable", color: "#ff3b30", penalty: 35 },
+  not_drivable: { label: "Not drivable", color: "#ff453a", penalty: 35 },
 };
-
 
 function insideBounds(point: LatLng) {
   return isInsideBangalore(point.lat, point.lng);
@@ -129,6 +137,10 @@ function AppMap({
   bumps,
   routes,
   onMapPoint,
+  is3D,
+  showRadar,
+  onMouseMoveCoords,
+  mapInstanceRef,
 }: {
   tab: Tab;
   start: LatLng | null;
@@ -138,16 +150,25 @@ function AppMap({
   bumps: Bump[];
   routes: RouteOption[];
   onMapPoint: (point: LatLng) => void;
+  is3D: boolean;
+  showRadar: boolean;
+  onMouseMoveCoords?: (lat: number, lng: number) => void;
+  mapInstanceRef?: React.MutableRefObject<L.Map | null>;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const leafletRef = useRef<typeof L | null>(null);
   const callbackRef = useRef(onMapPoint);
+  const mouseCoordsCallbackRef = useRef(onMouseMoveCoords);
 
   useEffect(() => {
     callbackRef.current = onMapPoint;
   }, [onMapPoint]);
+
+  useEffect(() => {
+    mouseCoordsCallbackRef.current = onMouseMoveCoords;
+  }, [onMouseMoveCoords]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +179,8 @@ function AppMap({
 
       const map = L.map(containerRef.current, { zoomControl: false, attributionControl: true });
       mapRef.current = map;
-      L.control.zoom({ position: "bottomright" }).addTo(map);
+      if (mapInstanceRef) mapInstanceRef.current = map;
+
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap contributors",
@@ -171,23 +193,23 @@ function AppMap({
             const props = feature?.properties as Record<string, string> | undefined;
             if (props?.category === "urban") {
               return {
-                color: "#34c759",
-                weight: 2.5,
-                fillColor: "#34c759",
+                color: "#55ee71",
+                weight: 2,
+                fillColor: "#30d158",
                 fillOpacity: 0.08,
               };
             }
             if (props?.category === "rural") {
               return {
-                color: "#0071e3",
+                color: "#2193fb",
                 weight: 2,
-                fillColor: "#0071e3",
+                fillColor: "#a3c9ff",
                 fillOpacity: 0.06,
                 dashArray: "6 5",
               };
             }
             return {
-              color: "#34c759",
+              color: "#869583",
               weight: 1.5,
               fillOpacity: 0,
               dashArray: "3 4",
@@ -197,7 +219,7 @@ function AppMap({
             const props = feature?.properties as Record<string, unknown> | undefined;
             if (props?.name) {
               const taluks = Array.isArray(props.taluks) ? props.taluks.join(", ") : "";
-              const talukText = taluks ? `<br><small style="color:var(--muted)">Taluks: ${taluks}</small>` : "";
+              const talukText = taluks ? `<br><small style="color:var(--outline)">Taluks: ${taluks}</small>` : "";
               layer.bindTooltip(`<strong>${String(props.name)}</strong>${talukText}`, {
                 sticky: true,
               });
@@ -207,7 +229,6 @@ function AppMap({
 
         map.fitBounds(boundaryLayer.getBounds(), { padding: [24, 24] });
       } catch {
-        // Fallback bounds for Bangalore Urban + Rural
         map.fitBounds(
           [
             [12.60, 77.15],
@@ -220,14 +241,19 @@ function AppMap({
       map.on("click", (event: L.LeafletMouseEvent) =>
         callbackRef.current({ lat: event.latlng.lat, lng: event.latlng.lng }),
       );
+
+      map.on("mousemove", (event: L.LeafletMouseEvent) => {
+        mouseCoordsCallbackRef.current?.(event.latlng.lat, event.latlng.lng);
+      });
     }
     mount();
     return () => {
       cancelled = true;
       mapRef.current?.remove();
       mapRef.current = null;
+      if (mapInstanceRef) mapInstanceRef.current = null;
     };
-  }, []);
+  }, [mapInstanceRef]);
 
   useEffect(() => {
     const L = leafletRef.current;
@@ -243,10 +269,10 @@ function AppMap({
         radius: 8,
         color: "#fff",
         weight: 2.5,
-        fillColor: "#34c759",
+        fillColor: "#55ee71",
         fillOpacity: 1,
       })
-        .bindTooltip("Start Point")
+        .bindTooltip("Start Point (Origin)")
         .addTo(group);
     }
 
@@ -255,7 +281,7 @@ function AppMap({
         radius: 8,
         color: "#fff",
         weight: 2.5,
-        fillColor: "#0071e3",
+        fillColor: "#2193fb",
         fillOpacity: 1,
       })
         .bindTooltip("Destination")
@@ -267,7 +293,7 @@ function AppMap({
         radius: 9,
         color: "#fff",
         weight: 2.5,
-        fillColor: "#ff9500",
+        fillColor: "#ffa11a",
         fillOpacity: 1,
       })
         .bindTooltip("Reported Location (Click map to change)")
@@ -278,9 +304,9 @@ function AppMap({
       L.polyline(
         route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
         {
-          color: index === 0 ? "#34c759" : "#0071e3",
+          color: index === 0 ? "#55ee71" : "#2193fb",
           opacity: index === 0 ? 0.95 : 0.72,
-          weight: index === 0 ? 6.5 : 5,
+          weight: index === 0 ? 7 : 5,
         },
       )
         .bindTooltip(
@@ -309,10 +335,10 @@ function AppMap({
     bumps.forEach((bump) => {
       L.circle([bump.latitude, bump.longitude], {
         radius: Math.min(55, 14 + bump.intensity * 4),
-        color: "#af52de",
+        color: "#a3c9ff",
         weight: 1.5,
-        fillColor: "#bf5af2",
-        fillOpacity: 0.22,
+        fillColor: "#2193fb",
+        fillOpacity: 0.25,
       })
         .bindTooltip(`Anonymous ride signal · ${bump.intensity.toFixed(1)} m/s²`)
         .addTo(group);
@@ -323,28 +349,59 @@ function AppMap({
       const poly = L.polyline(
         routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]),
       );
-      map.fitBounds(poly.getBounds(), { padding: [45, 45], maxZoom: 14 });
+      map.fitBounds(poly.getBounds(), { padding: [55, 55], maxZoom: 14 });
     }
   }, [start, end, reportPoint, reports, bumps, routes, tab]);
 
   return (
-    <div className="map-wrap">
+    <div className="relative w-full h-full overflow-hidden bg-surface-container-lowest">
+      {/* 3D Perspective Tilt Container */}
       <div
-        ref={containerRef}
-        className="map"
-        aria-label="Interactive map of Bengaluru Urban and Bengaluru Rural Districts"
-      />
-      <div className="map-hint">
-        <MapPin size={15} />
-        {tab === "report"
-          ? "Tap inside Bengaluru Urban or Rural to pin a road"
-          : "Type location on left or tap map to set points"}
+        className={`w-full h-full transition-transform duration-700 ease-out ${
+          is3D ? "is-3d" : ""
+        }`}
+      >
+        <div
+          ref={containerRef}
+          className="w-full h-full"
+          aria-label="Interactive map of Bengaluru Urban and Bengaluru Rural Districts"
+        />
       </div>
-      <div className="map-legend" aria-label="Road condition legend">
-        <span><i className="legend-dot rough" /> Rough</span>
-        <span><i className="legend-dot bumpy" /> Bumpy</span>
-        <span><i className="legend-dot blocked" /> Not drivable</span>
-        <span><i className="legend-ring" /> Ride signal</span>
+
+      {/* Doppler Weather / Synthetic Radar Layer */}
+      <div
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${
+          showRadar ? "opacity-60" : "opacity-0"
+        }`}
+      >
+        <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-secondary-container/15 blur-3xl animate-pulse" />
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 rounded-full bg-primary-container/15 blur-2xl" />
+      </div>
+
+      {/* Map Hint floating badge */}
+      <div className="absolute z-10 bottom-4 left-4 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low/85 backdrop-blur-xl border border-outline-variant/40 shadow-lg text-xs font-medium text-on-surface">
+        <MapPin size={13} className="text-primary" />
+        <span>
+          {tab === "report"
+            ? "Tap on map to pin road location"
+            : "Search or tap anywhere to set points"}
+        </span>
+      </div>
+
+      {/* Map Legend */}
+      <div className="absolute z-10 bottom-4 right-4 hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-full bg-surface-container-low/85 backdrop-blur-xl border border-outline-variant/40 shadow-lg text-[11px] font-medium text-outline">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-tertiary-container" /> Rough
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-orange-500" /> Bumpy
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-error" /> Blocked
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full border border-secondary" /> Ride Signal
+        </span>
       </div>
     </div>
   );
@@ -397,6 +454,14 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [riding, setRiding] = useState(false);
   const [rideStats, setRideStats] = useState({ signals: 0, speed: 0, elapsed: 0 });
+
+  // Stitch Interactive Viewport States
+  const [is3D, setIs3D] = useState(false);
+  const [showRadar, setShowRadar] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number }>({ lat: 12.9716, lng: 77.5946 });
+  const [routeMode, setRouteMode] = useState<"comfort" | "fast" | "twowheeler">("comfort");
+  const mapInstanceRef = useRef<L.Map | null>(null);
 
   const watchRef = useRef<number | null>(null);
   const motionHandlerRef = useRef<((event: DeviceMotionEvent) => void) | null>(null);
@@ -591,7 +656,6 @@ export default function Home() {
 
   function handleSelectRoadForReport(road: BangaloreRoad) {
     setRoadLabel(road.name);
-    // Pin map coordinates to this road's representative center if no point set yet
     if (!reportPoint) {
       setReportPoint({ lat: road.lat, lng: road.lng });
       setNotice(`Pinned to ${road.name}. Tap on map to refine exact spot if desired.`);
@@ -695,371 +759,204 @@ export default function Home() {
   const smoothest = routes[0] ?? null;
   const severeCount = reports.filter((report) => report.severity === "not_drivable").length;
 
-  // Requirement 4: Show Login Page first until authenticated or continuing as guest!
   if (!authUser) {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div className="brand" aria-label="Namma Smooth Roads home">
-          <span className="brand-mark">
-            <Bike size={21} />
-          </span>
-          <span>
-            <strong>Namma Smooth Roads</strong>
-            <small>Bengaluru Urban & Rural Districts</small>
-          </span>
+    <div className="relative min-h-screen bg-background text-on-surface antialiased flex flex-col">
+      {/* -------------------------------------------------------------------- */}
+      {/* 1. GOOGLE STITCH TOPBAR                                               */}
+      {/* -------------------------------------------------------------------- */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.36)] border-b border-outline-variant/30 flex items-center px-4 sm:px-6 justify-between gap-3">
+        {/* Left: Mobile Toggle + Brand Logo */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="lg:hidden p-2 rounded-xl text-on-surface hover:bg-surface-container-high transition-colors"
+            onClick={() => setMobileNavOpen((prev) => !prev)}
+            aria-label="Toggle navigation"
+          >
+            {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center shadow-[0_0_16px_rgba(48,209,88,0.4)]">
+              <Bike size={18} />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-title-section text-title-section font-bold tracking-tight text-on-surface">
+                Namma Smooth Roads
+              </span>
+              <span className="hidden sm:inline font-label-eyebrow text-label-eyebrow uppercase px-1.5 py-0.5 rounded bg-surface-container-high text-primary tracking-widest font-semibold">
+                PRO
+              </span>
+            </div>
+          </div>
         </div>
 
-        <nav className="nav-tabs" aria-label="Main navigation">
-          {(
-            [
-              ["explore", "Explore", RouteIcon],
-              ["report", "Report", MapPin],
-              ["ride", "Ride", Radio],
-              ["ops", "Operations", BarChart3],
-            ] as const
-          ).map(([value, label, Icon]) => (
-            <button
-              key={value}
-              className={tab === value ? "active" : ""}
-              onClick={() => setTab(value)}
-            >
-              <Icon size={17} />
-              {label}
-            </button>
-          ))}
-        </nav>
+        {/* Center: Search & Quick Route Pills */}
+        <div className="hidden xl:flex items-center gap-3">
+          <div className="flex items-center h-9 px-3 rounded-xl bg-surface-container/70 border border-outline-variant/30 text-xs text-outline w-64 shadow-inner">
+            <Search size={14} className="mr-2 text-outline" />
+            <input
+              type="text"
+              className="bg-transparent border-0 outline-none w-full text-on-surface placeholder:text-outline text-xs"
+              placeholder="Search coordinates, roads..."
+              value={roadLabel}
+              onChange={(e) => setRoadLabel(e.target.value)}
+            />
+            <span className="font-code-telemetry text-[10px] px-1 rounded bg-surface-container-highest text-outline">
+              ⌘K
+            </span>
+          </div>
 
-        {/* Topbar Right Action Cluster: Theme Switcher & User Status */}
-        <div className="topbar-trailing">
-          <ThemeSwitcher />
-          <div className="user-status-group">
-            <div className={`user-chip ${authUser.role === "commuter" ? "commuter" : ""}`}>
-              {authUser.role === "guest" ? <ShieldCheck size={14} /> : <UserCheck size={14} />}
-              <span>{authUser.name} ({authUser.role === "guest" ? "Guest User" : "Commuter"})</span>
+          <div className="flex items-center p-0.5 rounded-full bg-surface-container border border-outline-variant/30 text-xs">
+            <button
+              type="button"
+              className={`px-3 py-1 rounded-full font-ui-action transition-all ${
+                tab === "explore"
+                  ? "bg-surface-bright text-on-surface shadow-[0_2px_8px_rgba(0,0,0,0.24)] font-semibold"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+              onClick={() => setTab("explore")}
+            >
+              Smoothest
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1 rounded-full font-ui-action transition-all ${
+                tab === "report"
+                  ? "bg-surface-bright text-on-surface shadow-[0_2px_8px_rgba(0,0,0,0.24)] font-semibold"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+              onClick={() => setTab("report")}
+            >
+              Reports
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1 rounded-full font-ui-action transition-all ${
+                tab === "ride"
+                  ? "bg-surface-bright text-on-surface shadow-[0_2px_8px_rgba(0,0,0,0.24)] font-semibold"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+              onClick={() => setTab("ride")}
+            >
+              Telemetry
+            </button>
+          </div>
+        </div>
+
+        {/* Right Action Cluster: GNSS status, Theme Switcher, User */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low border border-outline-variant/30 font-code-telemetry text-xs text-primary shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span>GNSS Dual-Band: Bangalore Mesh</span>
+          </div>
+
+          <ThemeSwitcher compact />
+
+          <div className="flex items-center gap-2 pl-1 border-l border-outline-variant/30">
+            <div className={`px-2.5 py-1 rounded-full font-caption-meta text-xs font-semibold flex items-center gap-1.5 ${
+              authUser.role === "guest"
+                ? "bg-primary-container/20 text-primary border border-primary/30"
+                : "bg-secondary-container/20 text-secondary border border-secondary/30"
+            }`}>
+              {authUser.role === "guest" ? <ShieldCheck size={13} /> : <UserCheck size={13} />}
+              <span className="hidden sm:inline">{authUser.name}</span>
             </div>
-            <button className="logout-btn" onClick={handleLogout} title="Switch User or return to Login">
-              <LogOut size={13} />
-              <span>Logout</span>
+
+            <button
+              type="button"
+              className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
+              onClick={handleLogout}
+              title="Logout session"
+              aria-label="Logout"
+            >
+              <LogOut size={16} />
             </button>
           </div>
         </div>
       </header>
 
-      <section className="workspace">
-        <aside className="control-panel">
-          {tab === "explore" && (
-            <>
-              <div className="eyebrow">Two-wheeler route intelligence</div>
-              <h1>Choose the ride your back will thank you for.</h1>
-              <p className="lede">
-                Type locations or tap anywhere across Bangalore Urban & Rural districts to compare travel time with road comfort.
-              </p>
+      {/* -------------------------------------------------------------------- */}
+      {/* 2. GOOGLE STITCH LEFT SPATIAL NAVIGATION SIDEBAR                      */}
+      {/* -------------------------------------------------------------------- */}
+      <aside
+        className={`fixed left-0 top-16 bottom-0 w-64 bg-surface-container-lowest/85 backdrop-blur-2xl border-r border-outline-variant/30 z-40 flex flex-col justify-between py-4 transition-transform duration-200 lg:translate-x-0 ${
+          mobileNavOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+        }`}
+      >
+        <div className="px-3">
+          <div className="px-3 mb-3">
+            <span className="font-label-eyebrow text-label-eyebrow uppercase text-outline tracking-wider">
+              Spatial Navigation
+            </span>
+          </div>
 
-              {/* Requirement 1: Start point & Destination selected by typing */}
-              <div className="field-stack">
-                <LocationSearchInput
-                  label="Start Point"
-                  placeholder="Type start location (e.g. Majestic, Indiranagar, Nelamangala)..."
-                  selectedPoint={start}
-                  selectedLabel={startLabel}
-                  onSelect={(loc) => {
-                    setStart({ lat: loc.lat, lng: loc.lng });
-                    setStartLabel(loc.name);
-                    setRoutes([]);
-                    setRouteState(end ? "Ready to compare routes" : "Now select destination");
-                  }}
-                  onClear={() => {
-                    setStart(null);
-                    setStartLabel("");
-                    setRoutes([]);
-                  }}
-                  onUseMyLocation={() => handleLocateCurrentPosition("start")}
-                  iconType="start"
-                />
-
+          <nav className="flex flex-col gap-1">
+            {[
+              { id: "explore", label: "Explore & Routes", icon: RouteIcon },
+              { id: "report", label: "Road Reports", icon: MapPin },
+              { id: "ride", label: "Live Telemetry & Ride", icon: Radio },
+              { id: "ops", label: "District Analytics", icon: BarChart3 },
+            ].map(({ id, label, icon: Icon }) => {
+              const active = tab === id;
+              return (
                 <button
+                  key={id}
                   type="button"
-                  className="swap-locations-btn"
-                  onClick={handleSwapLocations}
-                  title="Swap Start and Destination"
-                >
-                  <ArrowUpDown size={13} />
-                  <span>Swap</span>
-                </button>
-
-                <LocationSearchInput
-                  label="Destination"
-                  placeholder="Type destination (e.g. Whitefield, Airport, Hosakote)..."
-                  selectedPoint={end}
-                  selectedLabel={endLabel}
-                  onSelect={(loc) => {
-                    setEnd({ lat: loc.lat, lng: loc.lng });
-                    setEndLabel(loc.name);
-                    setRoutes([]);
-                    setRouteState(start ? "Ready to compare routes" : "Now select start point");
+                  onClick={() => {
+                    setTab(id as Tab);
+                    setMobileNavOpen(false);
                   }}
-                  onClear={() => {
-                    setEnd(null);
-                    setEndLabel("");
-                    setRoutes([]);
-                  }}
-                  iconType="end"
-                />
-              </div>
-
-              <button
-                className="primary-action"
-                disabled={!start || !end}
-                onClick={compareRoutes}
-              >
-                <RouteIcon size={18} /> Compare smoothest and fastest
-              </button>
-              <p className="status-line">{routeState}</p>
-
-              {smoothest && (
-                <div className="route-results">
-                  <article className="route-card selected">
-                    <div>
-                      <span className="route-tag">
-                        {fastest === smoothest ? "Smoothest + fastest" : "Smoothest"}
-                      </span>
-                      <strong>{formatDuration(smoothest.duration)}</strong>
-                    </div>
-                    <p>
-                      {(smoothest.distance / 1000).toFixed(1)} km · comfort{" "}
-                      {smoothest.score}/100
-                    </p>
-                    <small>
-                      {smoothest.observations
-                        ? `${smoothest.observations} nearby observations`
-                        : "No nearby community reports yet"}
-                    </small>
-                  </article>
-                  {fastest && fastest !== smoothest && (
-                    <article className="route-card">
-                      <div>
-                        <span className="route-tag blue">Fastest</span>
-                        <strong>{formatDuration(fastest.duration)}</strong>
-                      </div>
-                      <p>
-                        {(fastest.distance / 1000).toFixed(1)} km · comfort{" "}
-                        {fastest.score}/100
-                      </p>
-                      <small>
-                        {Math.round((smoothest.duration - fastest.duration) / 60)} min faster
-                      </small>
-                    </article>
-                  )}
-                </div>
-              )}
-
-              <div className="data-note">
-                <Info size={16} />
-                <span>
-                  Expanded across Bengaluru Urban and Rural districts. Routing uses community OSRM and OpenStreetMap.
-                </span>
-              </div>
-            </>
-          )}
-
-          {tab === "report" && (
-            <form onSubmit={submitReport}>
-              <div className="eyebrow">Bangalore Road Report</div>
-              <h1>Mark a road that needs attention.</h1>
-              <p className="lede">
-                Search the road name below using the interactive dropdown or tap on the map.
-              </p>
-
-              {/* Requirement 3: Search using road names with properly provided dropdown */}
-              <div style={{ marginBottom: 14 }}>
-                <label className="input-label" style={{ marginTop: 0 }}>
-                  Search Road Name <span>interactive dropdown</span>
-                </label>
-                <RoadSearchInput
-                  value={roadLabel}
-                  onChange={setRoadLabel}
-                  onSelectRoad={handleSelectRoadForReport}
-                  placeholder="Search road (e.g. Outer Ring Road, Hosur Road, SH 9)..."
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-                <button
-                  type="button"
-                  className="secondary-action"
-                  style={{ marginTop: 0, flex: 1 }}
-                  onClick={() => handleLocateCurrentPosition("report")}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left font-body-medium text-body-medium ${
+                    active
+                      ? "bg-primary-container text-on-primary-container font-ui-action shadow-[0_2px_12px_rgba(48,209,88,0.3)]"
+                      : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                  }`}
                 >
-                  <LocateFixed size={16} /> GPS Location
+                  <Icon size={18} className="flex-shrink-0" />
+                  <span>{label}</span>
                 </button>
-              </div>
+              );
+            })}
+          </nav>
+        </div>
 
-              <div className="coordinate-box">
-                {reportPoint
-                  ? `Pinned: ${reportPoint.lat.toFixed(5)}, ${reportPoint.lng.toFixed(5)}`
-                  : "Pick a road above or tap map to pin coordinates"}
-              </div>
-
-              <fieldset className="severity-picker">
-                <legend>Road condition</legend>
-                {(Object.keys(severityMeta) as Severity[]).map((value) => (
-                  <label key={value} className={severity === value ? "chosen" : ""}>
-                    <input
-                      type="radio"
-                      name="severity"
-                      value={value}
-                      checked={severity === value}
-                      onChange={() => setSeverity(value)}
-                    />
-                    <i style={{ background: severityMeta[value].color }} />
-                    {severityMeta[value].label}
-                  </label>
-                ))}
-              </fieldset>
-
-              <label className="input-label">
-                Short note <span>optional</span>
-              </label>
-              <textarea
-                className="text-input"
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                maxLength={240}
-                placeholder="What should another rider know? (e.g. deep pothole on left lane)"
-                rows={3}
-              />
-
-              <button className="primary-action" type="submit">
-                <Send size={17} /> Submit Road Report
-              </button>
-            </form>
-          )}
-
-          {tab === "ride" && (
-            <>
-              <div className="eyebrow">Foreground motion sensing</div>
-              <h1>Turn one ride into safer road knowledge.</h1>
-              <p className="lede">
-                Safari or Chrome must remain open. The prototype uploads detected bump events across Bangalore Urban & Rural districts.
-              </p>
-              <div className={`ride-orb ${riding ? "recording" : ""}`}>
-                <Bike size={34} />
-                <strong>{riding ? "Recording" : "Ready"}</strong>
-                <span>{riding ? "Keep this page open" : "Mount your phone securely"}</span>
-              </div>
-              <div className="ride-stats">
-                <div>
-                  <span>Signals</span>
-                  <strong>{rideStats.signals}</strong>
-                </div>
-                <div>
-                  <span>Speed</span>
-                  <strong>
-                    {rideStats.speed.toFixed(0)} <small>km/h</small>
-                  </strong>
-                </div>
-                <div>
-                  <span>Time</span>
-                  <strong>
-                    {Math.floor(rideStats.elapsed / 60)}:
-                    {String(rideStats.elapsed % 60).padStart(2, "0")}
-                  </strong>
-                </div>
-              </div>
-              {!riding ? (
-                <button className="primary-action" onClick={startRide}>
-                  <Radio size={18} /> Grant access and start ride
-                </button>
-              ) : (
-                <button className="stop-action" onClick={stopRide}>
-                  <CircleStop size={18} /> Stop and save ride
-                </button>
-              )}
-              <div className="safety-note">
-                <AlertTriangle size={17} />
-                <span>Set this up before moving. Never interact with the screen while riding.</span>
-              </div>
-              <details className="privacy-details">
-                <summary>What is collected?</summary>
-                <p>
-                  Timestamped bump intensity, rounded location in Bangalore Urban or Rural, GPS accuracy, and speed at the event.
-                </p>
-              </details>
-            </>
-          )}
-
-          {tab === "ops" && (
-            <>
-              <div className="eyebrow">District operations view</div>
-              <h1>Road condition pulse.</h1>
-              <p className="lede">
-                Evidence collected across official Bengaluru Urban and Bengaluru Rural districts.
-              </p>
-              <div className="metric-grid">
-                <article>
-                  <span>Reports</span>
-                  <strong>{reports.length}</strong>
-                  <small>community submitted</small>
-                </article>
-                <article>
-                  <span>Ride signals</span>
-                  <strong>{bumps.length}</strong>
-                  <small>motion detected</small>
-                </article>
-                <article>
-                  <span>Not drivable</span>
-                  <strong>{severeCount}</strong>
-                  <small>needs review</small>
-                </article>
-                <article>
-                  <span>Coverage</span>
-                  <strong>Urban & Rural</strong>
-                  <small>district dataset</small>
-                </article>
-              </div>
-              <h2 className="section-title">Recent reports</h2>
-              <div className="activity-list">
-                {reports.slice(0, 6).map((report) => (
-                  <article key={report.id}>
-                    <i style={{ background: severityMeta[report.severity].color }} />
-                    <div>
-                      <strong>{severityMeta[report.severity].label}</strong>
-                      <span>{report.roadLabel}</span>
-                    </div>
-                    <time>
-                      {new Date(report.createdAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </time>
-                  </article>
-                ))}
-                {!reports.length && (
-                  <div className="empty-state">
-                    No reports yet. The dashboard will update as observations arrive.
-                  </div>
-                )}
-              </div>
-              <div className="data-note">
-                <Gauge size={16} />
-                <span>
-                  Low speeds alone never label a road as bad. Traffic, signals, stops, and surface evidence remain separate signals.
-                </span>
-              </div>
-            </>
-          )}
-          {notice && (
-            <div className="notice" role="status">
-              {notice}
+        {/* Bottom Telemetry Card in Sidebar */}
+        <div className="px-3">
+          <div className="p-3 rounded-xl bg-surface-container/60 border border-outline-variant/30 flex flex-col gap-1.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-label-eyebrow text-label-eyebrow uppercase text-outline">
+                Stream Latency
+              </span>
+              <span className="font-code-telemetry text-code-telemetry text-primary font-bold">
+                14ms
+              </span>
             </div>
-          )}
-        </aside>
+            <div className="w-full h-1.5 rounded-full bg-surface-container-high overflow-hidden">
+              <div className="h-full w-4/5 rounded-full bg-primary" />
+            </div>
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="font-caption-meta text-caption-meta text-outline">
+                Spatial Mesh 120Hz
+              </span>
+              <span className="font-code-telemetry text-code-telemetry text-secondary">
+                60 FPS
+              </span>
+            </div>
+          </div>
+        </div>
+      </aside>
 
-        <div className="map-panel">
+      {/* -------------------------------------------------------------------- */}
+      {/* 3. MAIN WORKSPACE: FULL CANVAS MAP + FLOATING INSPECTOR + HUDS        */}
+      {/* -------------------------------------------------------------------- */}
+      <div className="lg:pl-64 flex-1 flex flex-col pt-16">
+        <main className="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-surface-container-lowest">
+          {/* Full Interactive Canvas Map */}
           <AppMap
             tab={tab}
             start={start}
@@ -1069,14 +966,655 @@ export default function Home() {
             bumps={bumps}
             routes={routes}
             onMapPoint={handleMapPoint}
+            is3D={is3D}
+            showRadar={showRadar}
+            onMouseMoveCoords={(lat, lng) => setCurrentCoords({ lat, lng })}
+            mapInstanceRef={mapInstanceRef}
           />
-          <div className="source-bar">
-            <span>Prototype boundary: bundled Bengaluru Urban & Rural coverage</span>
-            <span>Basemap: OpenStreetMap</span>
-            <span className="prototype-badge">Bengaluru Urban & Rural</span>
+
+          {/* TOP-LEFT: Floating Route Inspector / Report / Ride / Operations Drawer */}
+          <div className="absolute top-4 left-4 z-30 w-[92%] sm:w-[410px] max-h-[calc(100vh-6rem)] overflow-y-auto pointer-events-auto">
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-low/90 backdrop-blur-3xl shadow-[0_16px_40px_rgba(0,0,0,0.5)] border border-outline-variant/40 flex flex-col gap-4">
+              {/* TAB 1: EXPLORE & ROUTES */}
+              {tab === "explore" && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <RouteIcon size={18} className="text-primary" />
+                      <span className="font-title-section text-title-section font-bold text-on-surface">
+                        Route Inspector
+                      </span>
+                    </div>
+                    <span className="font-label-eyebrow text-label-eyebrow uppercase px-2 py-0.5 rounded bg-primary-container/20 text-primary">
+                      Dynamic Path
+                    </span>
+                  </div>
+
+                  {/* Mode switcher segmented control */}
+                  <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-surface-container-lowest/70 border border-outline-variant/30 text-xs">
+                    <button
+                      type="button"
+                      className={`flex items-center justify-center gap-1 py-1.5 rounded-lg transition-all ${
+                        routeMode === "comfort"
+                          ? "bg-surface-bright text-on-surface shadow-sm font-semibold"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                      onClick={() => setRouteMode("comfort")}
+                    >
+                      <Zap size={13} className="text-primary" />
+                      <span>Comfort</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`flex items-center justify-center gap-1 py-1.5 rounded-lg transition-all ${
+                        routeMode === "fast"
+                          ? "bg-surface-bright text-on-surface shadow-sm font-semibold"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                      onClick={() => setRouteMode("fast")}
+                    >
+                      <RouteIcon size={13} className="text-secondary" />
+                      <span>Fastest</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`flex items-center justify-center gap-1 py-1.5 rounded-lg transition-all ${
+                        routeMode === "twowheeler"
+                          ? "bg-surface-bright text-on-surface shadow-sm font-semibold"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                      onClick={() => setRouteMode("twowheeler")}
+                    >
+                      <Bike size={13} className="text-tertiary" />
+                      <span>Two-Wheeler</span>
+                    </button>
+                  </div>
+
+                  {/* Start & Destination Form Stack with Connector Line */}
+                  <div className="flex flex-col gap-2 relative">
+                    <div className="absolute left-4 top-5 bottom-5 w-0.5 bg-outline-variant/50 pointer-events-none" />
+
+                    <div className="relative z-10">
+                      <LocationSearchInput
+                        label="Start Point"
+                        placeholder="Type start (Majestic, Indiranagar)..."
+                        selectedPoint={start}
+                        selectedLabel={startLabel}
+                        onSelect={(loc) => {
+                          setStart({ lat: loc.lat, lng: loc.lng });
+                          setStartLabel(loc.name);
+                          setRoutes([]);
+                          setRouteState(end ? "Ready to compare routes" : "Now select destination");
+                        }}
+                        onClear={() => {
+                          setStart(null);
+                          setStartLabel("");
+                          setRoutes([]);
+                        }}
+                        onUseMyLocation={() => handleLocateCurrentPosition("start")}
+                        iconType="start"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between px-2 py-0.5 relative z-10">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-xs text-outline hover:text-primary transition-colors font-code-telemetry ml-6"
+                        onClick={handleSwapLocations}
+                        title="Swap Origin & Destination"
+                      >
+                        <ArrowUpDown size={12} />
+                        <span>Swap Origin & Destination</span>
+                      </button>
+                    </div>
+
+                    <div className="relative z-10">
+                      <LocationSearchInput
+                        label="Destination"
+                        placeholder="Type destination (Whitefield, Airport)..."
+                        selectedPoint={end}
+                        selectedLabel={endLabel}
+                        onSelect={(loc) => {
+                          setEnd({ lat: loc.lat, lng: loc.lng });
+                          setEndLabel(loc.name);
+                          setRoutes([]);
+                          setRouteState(start ? "Ready to compare routes" : "Now select start point");
+                        }}
+                        onClear={() => {
+                          setEnd(null);
+                          setEndLabel("");
+                          setRoutes([]);
+                        }}
+                        iconType="end"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action CTA */}
+                  <button
+                    type="button"
+                    className="w-full py-3 rounded-xl bg-primary-container text-on-primary-container font-ui-action text-ui-action flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(48,209,88,0.35)] hover:brightness-105 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!start || !end}
+                    onClick={compareRoutes}
+                  >
+                    <Navigation2 size={16} />
+                    <span>Compare smoothest & fastest</span>
+                  </button>
+
+                  <p className="font-code-telemetry text-code-telemetry text-outline text-center">
+                    {routeState}
+                  </p>
+
+                  {/* Route Results Cards */}
+                  {smoothest && (
+                    <div className="flex flex-col gap-2 pt-1">
+                      <div className="p-3 rounded-xl bg-surface-container-high/90 border border-primary/40 shadow-md flex items-center justify-between cursor-pointer hover:border-primary transition-colors">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(85,238,113,0.8)]" />
+                          <div>
+                            <div className="font-title-section text-title-section text-on-surface flex items-center gap-1.5 font-bold">
+                              <span>{fastest === smoothest ? "Smoothest + fastest" : "Smoothest"}</span>
+                              <span className="font-label-eyebrow text-label-eyebrow px-1.5 rounded bg-primary-container/20 text-primary">
+                                Optimal
+                              </span>
+                            </div>
+                            <div className="font-caption-meta text-caption-meta text-outline">
+                              {(smoothest.distance / 1000).toFixed(1)} km · comfort {smoothest.score}/100
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-headline-kpi text-[18px] text-primary">
+                            {formatDuration(smoothest.duration)}
+                          </div>
+                          <div className="font-code-telemetry text-[11px] text-outline">
+                            {smoothest.observations ? `${smoothest.observations} obs` : "No road penalty"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {fastest && fastest !== smoothest && (
+                        <div className="p-3 rounded-xl bg-surface-container/60 border border-outline-variant/40 flex items-center justify-between cursor-pointer hover:bg-surface-container-high/60 transition-colors">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-secondary shadow-[0_0_8px_rgba(163,201,255,0.8)]" />
+                            <div>
+                              <div className="font-title-section text-title-section text-on-surface font-semibold">
+                                Fastest Alternative
+                              </div>
+                              <div className="font-caption-meta text-caption-meta text-outline">
+                                {(fastest.distance / 1000).toFixed(1)} km · comfort {fastest.score}/100
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-headline-kpi text-[18px] text-secondary">
+                              {formatDuration(fastest.duration)}
+                            </div>
+                            <div className="font-code-telemetry text-[11px] text-primary">
+                              -{Math.round((smoothest.duration - fastest.duration) / 60)}m faster
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-surface-container/40 border border-outline-variant/30 text-xs text-outline">
+                    <Info size={14} className="flex-shrink-0 mt-0.5 text-secondary" />
+                    <span>
+                      Expanded across Bengaluru Urban & Rural districts. Uses OpenStreetMap and OSRM.
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {/* TAB 2: ROAD CONDITION REPORT */}
+              {tab === "report" && (
+                <form onSubmit={submitReport} className="flex flex-col gap-3.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={18} className="text-tertiary-container" />
+                      <span className="font-title-section text-title-section font-bold text-on-surface">
+                        Road Condition Report
+                      </span>
+                    </div>
+                    <span className="font-label-eyebrow text-label-eyebrow uppercase px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary-container">
+                      Community Pin
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="font-label-eyebrow text-label-eyebrow text-outline uppercase block mb-1">
+                      Search Road Name
+                    </label>
+                    <RoadSearchInput
+                      value={roadLabel}
+                      onChange={setRoadLabel}
+                      onSelectRoad={handleSelectRoadForReport}
+                      placeholder="Search (Outer Ring Road, NH 44, SH 9)..."
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="flex-1 py-2 px-3 rounded-xl border border-outline-variant/50 bg-surface-container hover:bg-surface-container-high font-ui-action text-xs text-on-surface flex items-center justify-center gap-1.5 transition-colors"
+                      onClick={() => handleLocateCurrentPosition("report")}
+                    >
+                      <LocateFixed size={14} className="text-primary" />
+                      <span>Use Current GPS</span>
+                    </button>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-surface-container/60 border border-outline-variant/40 font-code-telemetry text-xs text-center text-outline">
+                    {reportPoint
+                      ? `Pinned: ${reportPoint.lat.toFixed(5)}° N, ${reportPoint.lng.toFixed(5)}° E`
+                      : "Search road above or tap map to pin coordinates"}
+                  </div>
+
+                  {/* Severity selection */}
+                  <div>
+                    <label className="font-label-eyebrow text-label-eyebrow text-outline uppercase block mb-1.5">
+                      Road Condition Severity
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(Object.keys(severityMeta) as Severity[]).map((value) => {
+                        const isChosen = severity === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all text-xs ${
+                              isChosen
+                                ? "bg-surface-container-high border-primary text-on-surface shadow-sm font-semibold"
+                                : "bg-surface-container/50 border-outline-variant/40 text-outline hover:text-on-surface"
+                            }`}
+                            onClick={() => setSeverity(value)}
+                          >
+                            <span
+                              className="w-2.5 h-2.5 rounded-full"
+                              style={{ background: severityMeta[value].color }}
+                            />
+                            <span>{severityMeta[value].label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-label-eyebrow text-label-eyebrow text-outline uppercase block mb-1">
+                      Short Observation Note <span className="lowercase font-normal">(optional)</span>
+                    </label>
+                    <textarea
+                      className="w-full p-2.5 rounded-xl bg-surface-container/80 border border-outline-variant/50 text-on-surface font-body-subtle text-xs placeholder:text-outline outline-none focus:border-primary resize-none"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      maxLength={240}
+                      placeholder="e.g. Broken asphalt left lane near junction..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3 rounded-xl bg-primary-container text-on-primary-container font-ui-action text-ui-action flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(48,209,88,0.35)] hover:brightness-105 active:scale-[0.98] transition-all"
+                  >
+                    <Send size={15} />
+                    <span>Submit Road Report</span>
+                  </button>
+                </form>
+              )}
+
+              {/* TAB 3: LIVE TELEMETRY & RIDE */}
+              {tab === "ride" && (
+                <div className="flex flex-col gap-4 text-center">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Radio size={18} className="text-primary" />
+                      <span className="font-title-section text-title-section font-bold text-on-surface">
+                        Foreground Motion Sensing
+                      </span>
+                    </div>
+                    <span className={`font-label-eyebrow text-label-eyebrow uppercase px-2 py-0.5 rounded ${
+                      riding ? "bg-error-container/20 text-error animate-pulse" : "bg-surface-container text-outline"
+                    }`}>
+                      {riding ? "Live Stream" : "Standby"}
+                    </span>
+                  </div>
+
+                  {/* Pulsing Sensing Orb */}
+                  <div className="relative w-36 h-36 mx-auto my-2 flex items-center justify-center">
+                    <div className={`absolute inset-0 rounded-full ${
+                      riding ? "bg-error/20 animate-ping" : "bg-primary-container/10"
+                    }`} />
+                    <div className={`w-28 h-28 rounded-full border-2 flex flex-col items-center justify-center shadow-lg transition-all ${
+                      riding
+                        ? "bg-surface-container-high border-error text-error shadow-error/20"
+                        : "bg-surface-container border-primary/50 text-primary shadow-primary/20"
+                    }`}>
+                      <Bike size={26} />
+                      <span className="font-title-section text-xs font-bold mt-1">
+                        {riding ? "STREAMING" : "READY"}
+                      </span>
+                      <span className="font-caption-meta text-[9px] text-outline">
+                        {riding ? "Vibration Active" : "Mount Phone"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Telemetry Stats Grid */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-2.5 rounded-xl bg-surface-container/70 border border-outline-variant/40">
+                      <span className="font-label-eyebrow text-[10px] text-outline block">Signals</span>
+                      <span className="font-headline-kpi text-[20px] text-on-surface">{rideStats.signals}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-surface-container/70 border border-outline-variant/40">
+                      <span className="font-label-eyebrow text-[10px] text-outline block">Speed</span>
+                      <span className="font-headline-kpi text-[20px] text-primary">{rideStats.speed.toFixed(0)} <small className="text-[10px]">km/h</small></span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-surface-container/70 border border-outline-variant/40">
+                      <span className="font-label-eyebrow text-[10px] text-outline block">Time</span>
+                      <span className="font-code-telemetry text-[16px] text-on-surface font-bold">
+                        {Math.floor(rideStats.elapsed / 60)}:{String(rideStats.elapsed % 60).padStart(2, "0")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {!riding ? (
+                    <button
+                      type="button"
+                      className="w-full py-3 rounded-xl bg-primary-container text-on-primary-container font-ui-action text-ui-action flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(48,209,88,0.35)] hover:brightness-105 active:scale-[0.98] transition-all"
+                      onClick={startRide}
+                    >
+                      <Radio size={16} />
+                      <span>Start Ride Recording</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full py-3 rounded-xl bg-error text-on-error font-ui-action text-ui-action flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(255,69,58,0.4)] hover:brightness-105 active:scale-[0.98] transition-all"
+                      onClick={stopRide}
+                    >
+                      <CircleStop size={16} />
+                      <span>Stop and Save Ride</span>
+                    </button>
+                  )}
+
+                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-tertiary-container/15 border border-tertiary/20 text-xs text-tertiary text-left">
+                    <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
+                    <span>Mount phone securely before moving. Never interact with screen while riding.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: DISTRICT ANALYTICS */}
+              {tab === "ops" && (
+                <div className="flex flex-col gap-3.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 size={18} className="text-secondary" />
+                      <span className="font-title-section text-title-section font-bold text-on-surface">
+                        District Operations Pulse
+                      </span>
+                    </div>
+                    <span className="font-label-eyebrow text-label-eyebrow uppercase px-2 py-0.5 rounded bg-secondary-container/20 text-secondary">
+                      Live Telemetry
+                    </span>
+                  </div>
+
+                  {/* 4 Metric KPI Widgets */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 rounded-xl bg-surface-container/70 border border-outline-variant/40">
+                      <span className="font-label-eyebrow text-[10px] text-outline block">Reports</span>
+                      <strong className="font-headline-kpi text-[22px] text-on-surface block mt-1">{reports.length}</strong>
+                      <small className="font-caption-meta text-outline text-[10px]">community</small>
+                    </div>
+                    <div className="p-3 rounded-xl bg-surface-container/70 border border-outline-variant/40">
+                      <span className="font-label-eyebrow text-[10px] text-outline block">Ride Signals</span>
+                      <strong className="font-headline-kpi text-[22px] text-primary block mt-1">{bumps.length}</strong>
+                      <small className="font-caption-meta text-outline text-[10px]">motion events</small>
+                    </div>
+                    <div className="p-3 rounded-xl bg-surface-container/70 border border-outline-variant/40">
+                      <span className="font-label-eyebrow text-[10px] text-outline block">Not Drivable</span>
+                      <strong className="font-headline-kpi text-[22px] text-error block mt-1">{severeCount}</strong>
+                      <small className="font-caption-meta text-outline text-[10px]">critical alerts</small>
+                    </div>
+                    <div className="p-3 rounded-xl bg-surface-container/70 border border-outline-variant/40">
+                      <span className="font-label-eyebrow text-[10px] text-outline block">Coverage</span>
+                      <strong className="font-headline-kpi text-[20px] text-secondary block mt-1">Urban & Rural</strong>
+                      <small className="font-caption-meta text-outline text-[10px]">district bounds</small>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="font-label-eyebrow text-label-eyebrow text-outline uppercase block mb-2">
+                      Recent Condition Reports
+                    </span>
+                    <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                      {reports.slice(0, 5).map((r) => (
+                        <div
+                          key={r.id}
+                          className="flex items-center justify-between p-2 rounded-xl bg-surface-container/50 border border-outline-variant/30 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ background: severityMeta[r.severity].color }}
+                            />
+                            <div className="truncate">
+                              <span className="font-semibold text-on-surface block truncate">{r.roadLabel}</span>
+                              <span className="text-[10px] text-outline block">{severityMeta[r.severity].label}</span>
+                            </div>
+                          </div>
+                          <span className="font-code-telemetry text-[10px] text-outline flex-shrink-0 ml-2">
+                            {new Date(r.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          </span>
+                        </div>
+                      ))}
+                      {!reports.length && (
+                        <div className="p-4 rounded-xl border border-dashed border-outline-variant/40 text-center text-xs text-outline">
+                          No community reports yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-surface-container/40 border border-outline-variant/30 text-xs text-outline">
+                    <Gauge size={14} className="flex-shrink-0 mt-0.5 text-primary" />
+                    <span>
+                      Vibration spikes and reports update route scores in real-time.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Toast Notification */}
+              {notice && (
+                <div className="p-2.5 rounded-xl bg-primary-container/20 border border-primary/30 text-primary font-body-subtle text-xs text-center animate-fade-in">
+                  {notice}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
-    </main>
+
+          {/* TOP-RIGHT: Adaptive Map Control Stack & Layers */}
+          <div className="absolute top-4 right-4 z-30 flex flex-col gap-2 items-end pointer-events-auto">
+            {/* North Reset & 3D Pitch View Toggle */}
+            <div className="p-1 rounded-2xl bg-surface-container-low/85 backdrop-blur-2xl border border-outline-variant/40 shadow-xl flex flex-col gap-1">
+              <button
+                type="button"
+                className="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-on-surface hover:text-primary transition-all"
+                onClick={() => {
+                  if (mapInstanceRef.current) {
+                    mapInstanceRef.current.setView([12.9767, 77.5713], 12);
+                  }
+                }}
+                title="Align to Bangalore North"
+              >
+                <Compass size={18} className="text-tertiary-container" />
+              </button>
+              <button
+                type="button"
+                className={`w-9 h-9 rounded-xl flex items-center justify-center font-code-telemetry text-[12px] font-bold transition-all ${
+                  is3D
+                    ? "bg-primary-container text-on-primary-container shadow-sm"
+                    : "bg-surface-container text-primary hover:bg-surface-container-high"
+                }`}
+                onClick={() => setIs3D((prev) => !prev)}
+                title="Toggle 3D Pitch View"
+              >
+                3D
+              </button>
+            </div>
+
+            {/* Weather / Radar Layer Toggle */}
+            <div className="p-1 rounded-2xl bg-surface-container-low/85 backdrop-blur-2xl border border-outline-variant/40 shadow-xl flex flex-col gap-1">
+              <button
+                type="button"
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                  showRadar
+                    ? "bg-secondary-container text-on-secondary-container"
+                    : "bg-surface-container text-secondary hover:bg-surface-container-high"
+                }`}
+                onClick={() => setShowRadar((prev) => !prev)}
+                title="Toggle Live Radar Overlay"
+              >
+                <Layers size={17} />
+              </button>
+            </div>
+
+            {/* Zoom Controls */}
+            <div className="p-1 rounded-2xl bg-surface-container-low/85 backdrop-blur-2xl border border-outline-variant/40 shadow-xl flex flex-col items-center gap-1">
+              <button
+                type="button"
+                className="w-8 h-8 rounded-lg text-on-surface hover:bg-surface-container-high flex items-center justify-center transition-all"
+                onClick={() => mapInstanceRef.current?.zoomIn()}
+                title="Zoom In"
+              >
+                <Plus size={16} />
+              </button>
+              <div className="w-1 h-8 bg-surface-container-highest rounded-full relative my-0.5">
+                <div className="w-full h-1/2 bg-primary rounded-full" />
+              </div>
+              <button
+                type="button"
+                className="w-8 h-8 rounded-lg text-on-surface hover:bg-surface-container-high flex items-center justify-center transition-all"
+                onClick={() => mapInstanceRef.current?.zoomOut()}
+                title="Zoom Out"
+              >
+                <Minus size={16} />
+              </button>
+            </div>
+
+            {/* Monospace Spatial Coordinates HUD */}
+            <div className="px-3 py-1.5 rounded-xl bg-surface-container-lowest/85 backdrop-blur-md border border-outline-variant/30 shadow-lg flex items-center gap-2 text-outline font-code-telemetry text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span>
+                {currentCoords.lat.toFixed(4)}° N, {currentCoords.lng.toFixed(4)}° E
+              </span>
+            </div>
+          </div>
+
+          {/* BOTTOM-CENTER: Dynamic Maneuver / Guidance HUD Bar (Visible when route or riding) */}
+          {(smoothest || riding) && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 w-[94%] max-w-[800px] pointer-events-auto">
+              <div className="p-3.5 sm:px-5 rounded-3xl bg-surface-container-lowest/90 backdrop-blur-3xl border border-outline-variant/40 shadow-[0_24px_60px_rgba(0,0,0,0.65)] flex flex-wrap items-center justify-between gap-4">
+                {/* Left: Next Turn Guidance */}
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-primary-container text-on-primary-container shadow-[0_4px_16px_rgba(48,209,88,0.4)] flex items-center justify-center flex-shrink-0 animate-pulse">
+                    <Navigation2 size={20} className="transform rotate-45" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-headline-kpi text-[17px] text-on-surface tracking-tight font-bold">
+                        {riding ? "Live Ride Active" : "Smoothest Guidance"}
+                      </span>
+                      <span className="font-caption-meta text-caption-meta text-primary font-semibold">
+                        Optimal
+                      </span>
+                    </div>
+                    <div className="font-body-subtle text-body-subtle text-outline truncate max-w-[240px]">
+                      {riding ? "Recording accelerometer vibrations" : (endLabel || "Selected destination")}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Center: Journey Progress & ETA */}
+                {smoothest && (
+                  <div className="hidden sm:flex items-center gap-5 px-4 border-l border-r border-outline-variant/30">
+                    <div className="flex flex-col">
+                      <span className="font-label-eyebrow text-label-eyebrow uppercase text-outline">
+                        Arrival Time
+                      </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-headline-kpi text-[18px] text-on-surface font-bold">
+                          {formatDuration(smoothest.duration)}
+                        </span>
+                      </div>
+                      <span className="font-code-telemetry text-code-telemetry text-primary">
+                        {(smoothest.distance / 1000).toFixed(1)} km
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="font-label-eyebrow text-label-eyebrow uppercase text-outline">
+                        Comfort
+                      </span>
+                      <span className="font-headline-kpi text-[18px] text-primary font-bold">
+                        {smoothest.score}/100
+                      </span>
+                      <span className="font-code-telemetry text-code-telemetry text-outline">
+                        {smoothest.observations} obs
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Right: Telemetry & Circular Gauge */}
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="font-headline-kpi text-[18px] text-on-surface font-bold">
+                        {rideStats.speed.toFixed(0)}
+                      </span>
+                      <span className="font-caption-meta text-caption-meta text-outline">km/h</span>
+                    </div>
+                    <span className="px-1.5 py-0.2 rounded bg-surface-container-high text-[9px] font-code-telemetry text-outline font-bold">
+                      SPEED
+                    </span>
+                  </div>
+
+                  {/* Circular Comfort Ring Gauge */}
+                  <div className="relative w-10 h-10 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+                      <path
+                        className="text-surface-container-high"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.5"
+                      />
+                      <path
+                        className="text-primary"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeDasharray={`${smoothest ? smoothest.score : 85}, 100`}
+                        strokeLinecap="round"
+                        strokeWidth="3.5"
+                      />
+                    </svg>
+                    <span className="absolute font-code-telemetry text-[10px] font-bold text-on-surface">
+                      {smoothest ? `${smoothest.score}%` : "85%"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
   );
 }

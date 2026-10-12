@@ -76,14 +76,14 @@ export function RoadSearchInput({
   }
 
   return (
-    <div className="road-search-wrapper" ref={containerRef}>
-      <div className="road-input-box">
-        <Search size={16} className="road-search-icon" />
+    <div className="relative w-full" ref={containerRef}>
+      <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-surface-container/80 border border-outline-variant/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-sm transition-all">
+        <Search size={16} className="text-primary flex-shrink-0" />
 
         <input
           ref={inputRef}
           type="text"
-          className="road-text-field"
+          className="w-full bg-transparent border-0 p-0 text-on-surface font-body-medium text-body-medium placeholder:text-outline outline-none"
           value={value}
           placeholder={placeholder}
           onChange={(e) => {
@@ -100,7 +100,7 @@ export function RoadSearchInput({
         {value && (
           <button
             type="button"
-            className="input-clear-btn"
+            className="p-1 rounded-full text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors"
             onClick={() => {
               onChange("");
               if (inputRef.current) inputRef.current.focus();
@@ -113,11 +113,11 @@ export function RoadSearchInput({
 
         <button
           type="button"
-          className="road-dropdown-toggle-btn"
+          className="p-1 text-outline hover:text-on-surface transition-transform"
           onClick={() => setIsOpen((prev) => !prev)}
           title="Toggle Bangalore roads dropdown"
         >
-          <ChevronDown size={16} className={isOpen ? "rotate-180" : ""} />
+          <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
         </button>
       </div>
 
@@ -125,12 +125,12 @@ export function RoadSearchInput({
         <div className="road-dropdown-menu" role="listbox">
           <div className="dropdown-header">
             <span>
-              Bangalore Roads & Highways ({filtered.length} {filtered.length === 1 ? "road" : "roads"})
+              Bangalore Roads ({filtered.length})
             </span>
-            <small>Click to select or type custom</small>
+            <span className="font-caption-meta text-outline lowercase">click to select</span>
           </div>
 
-          <div className="dropdown-scroll-list">
+          <div className="overflow-y-auto max-h-56">
             {filtered.length > 0 ? (
               filtered.map((road, index) => {
                 const isSelected = highlightIndex === index;
@@ -146,8 +146,8 @@ export function RoadSearchInput({
                     role="option"
                     aria-selected={isSelected}
                   >
-                    <Navigation2 size={15} className="dropdown-road-icon" />
-                    <div className="dropdown-item-content">
+                    <Navigation2 size={14} className="text-primary flex-shrink-0" />
+                    <div className="flex-1 min-w-0 flex flex-col">
                       <span className="dropdown-item-title">{road.name}</span>
                       <span className="dropdown-item-subtitle">{road.corridor}</span>
                     </div>
@@ -162,8 +162,8 @@ export function RoadSearchInput({
                 );
               })
             ) : (
-              <div className="dropdown-empty-item">
-                <span>&ldquo;{value}&rdquo; not in preset list. Your custom road label will be submitted.</span>
+              <div className="p-3 text-xs text-outline">
+                &ldquo;{value}&rdquo; not in catalogue. Custom road label will be used.
               </div>
             )}
           </div>

@@ -84,15 +84,20 @@ Traditional navigation platforms (Google Maps, Apple Maps) optimize almost exclu
 - **Live Observability**: Real-time breakdown of total community reports, passive vibration signals, and critical "Not drivable" alerts.
 - **Recent Feed**: Transparent log of recent observations with timestamps and condition markers across both districts.
 
-### 7. 🎨 Apple HIG Design & Dynamic Theme Switching (Dark, Light, System Default)
-- **Apple Human Interface Ergonomics**: Refined to the aesthetics and tactile feedback of Apple designs:
-  - **Typography**: Precision SF Pro display and text typographic hierarchy with optical letter-spacing.
-  - **Glassmorphism Materials**: Translucent frosted glass headers, floating toolbars, and dropdowns (`backdrop-filter: blur(24px) saturate(190%)`).
-  - **Continuous Curves & Micro-Interactions**: Apple squircle radii (`rounded-2xl`, `rounded-3xl`), hairline borders, ambient multi-layer drop shadows, and active touch scale effects (`active:scale-[0.98]`).
-  - **Apple Maps Dark Mode Calibration**: Intelligent map tile shader inversion ensures the map seamlessly transitions to an authentic Apple Maps dark mode.
+### 7. 🚀 Google Stitch AeroNav PRO Design & Dynamic Theme Switching
+- **Google Stitch Spatial Cyber-Navigation Interface**: Upgraded to Google Stitch's telemetry HUD aesthetic:
+  - **Color Elevation Architecture**: Tokenized elevation levels using Stitch surfaces (`surface-container-lowest` `#0e0e10`, `surface-container-low` `#1b1b1d`, `surface-container` `#1f1f21`, `surface-container-high` `#2a2a2c`, `surface-bright` `#39393b`).
+  - **High-Contrast Telemetry Accents**: Vibrant neon primary green (`#55ee71` / `#30d158`), high-clarity route cyan/blue (`#a3c9ff` / `#2193fb`), and amber/orange alert tokens (`#ffa11a`).
+  - **Full-Canvas Map & Spatial Overlays**: Full-bleed interactive Leaflet map canvas accompanied by:
+    - **Top Bar**: Glassmorphic frosted header with AeroNav PRO branding, quick global search shortcut (`⌘K`), real-time `GNSS Dual-Band: Lock 32 Sats` badge, segmented map layers, theme switcher, and commuter identity chip.
+    - **Spatial Navigation Sidebar**: 64px desktop sidebar featuring instant tab switching (Explore & Routes, Report Hazard, Ride Telemetry, District Operations) and live stream latency monitor (`STREAM 1080p 60FPS 34ms`).
+    - **Floating Route Inspector Drawer**: Glassmorphic frosted card overlay for all interaction workflows with collapsible controls.
+    - **Top-Right Map HUD Stack**: Cybernetic map controls including quick center reset, 3D perspective tilt (`rotateX(42deg)`), Doppler weather/surface radar layer toggle, live zoom gauge, and live GPS coordinates readout.
+    - **Bottom Maneuver / Telemetry HUD Bar**: Dynamic floating maneuver bar showing next turn instruction, heading compass, distance, ETA, and real-time road comfort score gauge.
+  - **Typography**: Inter for titles and body, paired with JetBrains Mono for telemetry, coordinates, and latency metrics.
 - **Three-Way Appearance Switcher**:
-  - ☀️ **Light Mode**: Crisp Apple `#F5F5F7` canvas, elevated white cards, soft ambient shadows, and crisp typography.
-  - 🌙 **Dark Mode**: True Apple OLED black (`#000000`), elevated `#1C1C1E` dark surfaces, and high-vibrancy semantic accents.
+  - 🌙 **Dark Mode (Default)**: Deep obsidian cyber-cockpit with neon telemetry indicators and inverted dark Leaflet tiles.
+  - ☀️ **Light Mode**: Crisp silver/slate HUD canvas with high-legibility dark typography and subtle frost carding.
   - 💻 **System Default**: Automatically syncs in real-time with the commuter's device appearance (`prefers-color-scheme`).
   - **Instant Access**: Interactive segmented control accessible directly from the top navigation bar and the login portal.
 

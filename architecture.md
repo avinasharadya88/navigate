@@ -43,7 +43,7 @@ The access screen is a client-side product flow. It does not protect the Worker 
 | --- | --- |
 | UI | React 19.2.6, Next.js 16.3.4 App Router conventions |
 | Theming | next-themes 0.4.6 with ThemeProvider, class-based attribute, and system synchronization |
-| Design System | Apple Human Interface Guidelines (SF Pro typography, continuous squircle curvature, frosted glass materials, Apple semantic color system) |
+| Design System | Google Stitch AeroNav PRO Spatial Navigation HUD (Inter & JetBrains Mono typography, deep surface elevation tokens `#0e0e10`–`#39393b`, 3D viewport perspective tilt, radar overlay, cybernetic telemetry badges) |
 | Runtime and build | vinext 1.0.0-beta.5 on Vite 8.0.13 |
 | Hosting | Cloudflare Workers through `@cloudflare/vite-plugin` |
 | Database | Cloudflare D1 with Drizzle ORM 0.45.2 |
@@ -60,15 +60,15 @@ The tracked `.openai/hosting.json` binds D1 as `DB`. Production injects the data
 app/
   api/reports/route.ts          read and create road reports
   api/bumps/route.ts            read and create bump events
-  page.tsx                      application state, map, scoring, and sensors
-  layout.tsx                    document metadata and ThemeProvider
-  globals.css                   Apple Design System tokens and theme styles
+  page.tsx                      application state, full-canvas map, spatial HUD, scoring, sensors
+  layout.tsx                    document metadata, fonts (Inter, JetBrains Mono), ThemeProvider
+  globals.css                   Google Stitch design tokens, 3D viewport, radar animations, tile shaders
 components/
   theme-provider.tsx            next-themes client context provider
-  theme-switcher.tsx            Apple-style segmented control theme switcher
-  login-view.tsx                guest and placeholder credential screen with theme toggle
-  location-search-input.tsx     typed start and destination search
-  road-search-input.tsx         report road search
+  theme-switcher.tsx            Google Stitch segmented pill theme switcher
+  login-view.tsx                guest and placeholder credential screen with Stitch cyber container
+  location-search-input.tsx     typed start and destination search with Stitch elevation
+  road-search-input.tsx         report road search with Stitch elevation
 db/
   index.ts                      D1 client
   schema.ts                     report and bump tables

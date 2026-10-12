@@ -13,7 +13,6 @@ const emptySubscribe = () => () => {};
 
 export function ThemeSwitcher({ compact = false, className = "" }: ThemeSwitcherProps) {
   const { theme, setTheme } = useTheme();
-  // Hydration-safe mount detection without cascading setState
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
@@ -26,53 +25,51 @@ export function ThemeSwitcher({ compact = false, className = "" }: ThemeSwitcher
     { value: "system", label: "System", icon: Laptop },
   ] as const;
 
-
   if (!mounted) {
     return (
-      <div
-        className={`apple-theme-switcher ${compact ? "compact" : ""} ${className}`}
-        aria-hidden="true"
-      >
-        <div className="apple-segmented-track skeleton-placeholder">
-          <span className="apple-segment-btn opacity-0">
-            <Sun size={14} />
-          </span>
-          <span className="apple-segment-btn opacity-0">
-            <Moon size={14} />
-          </span>
-          <span className="apple-segment-btn opacity-0">
-            <Laptop size={14} />
-          </span>
-        </div>
+      <div className={`flex items-center p-0.5 rounded-full bg-surface-container/70 border border-outline-variant/40 ${className}`}>
+        <div className="w-7 h-7 rounded-full opacity-0" />
+        <div className="w-7 h-7 rounded-full opacity-0" />
+        <div className="w-7 h-7 rounded-full opacity-0" />
       </div>
     );
   }
 
   return (
     <div
-      className={`apple-theme-switcher ${compact ? "compact" : ""} ${className}`}
+      className={`flex items-center p-0.5 rounded-full bg-surface-container/80 border border-outline-variant/40 shadow-inner ${className}`}
       role="group"
       aria-label="Theme mode selector"
     >
-      <div className="apple-segmented-track">
-        {options.map(({ value, label, icon: Icon }) => {
-          const isActive = theme === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              className={`apple-segment-btn ${isActive ? "active" : ""}`}
-              onClick={() => setTheme(value)}
-              title={`${label} mode`}
-              aria-pressed={isActive}
-              aria-label={`Switch to ${label} appearance`}
-            >
-              <Icon size={compact ? 13 : 14} className="apple-segment-icon" />
-              {!compact && <span className="apple-segment-label">{label}</span>}
-            </button>
-          );
-        })}
-      </div>
+      {options.map(({ value, label, icon: Icon }) => {
+        const isActive = theme === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            className={
+              compact
+                ? `w-7 h-7 flex items-center justify-center rounded-full transition-all ${
+                    isActive
+                      ? "bg-surface-bright text-primary shadow-[0_2px_8px_rgba(0,0,0,0.28)]"
+                      : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60"
+                  }`
+                : `flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                    isActive
+                      ? "bg-surface-bright text-primary shadow-[0_2px_8px_rgba(0,0,0,0.28)] font-semibold"
+                      : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60"
+                  }`
+            }
+            onClick={() => setTheme(value)}
+            title={`${label} mode`}
+            aria-pressed={isActive}
+            aria-label={`Switch to ${label} appearance`}
+          >
+            <Icon size={14} />
+            {!compact && <span>{label}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }

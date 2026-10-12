@@ -102,13 +102,13 @@ export function LocationSearchInput({
   }
 
   return (
-    <div className="location-search-wrapper" ref={containerRef}>
-      <div className="location-label-row">
-        <label className="input-label-small">{label}</label>
+    <div className="relative w-full" ref={containerRef}>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="font-label-eyebrow text-label-eyebrow text-outline uppercase tracking-wider">{label}</label>
         {onUseMyLocation && (
           <button
             type="button"
-            className="gps-pill-btn"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-outline-variant/60 bg-surface-container-high/80 text-primary hover:bg-primary-container/20 font-caption-meta text-caption-meta transition-colors"
             onClick={onUseMyLocation}
             title="Use current device GPS location"
           >
@@ -118,15 +118,19 @@ export function LocationSearchInput({
         )}
       </div>
 
-      <div className={`location-input-box ${iconType === "start" ? "start-theme" : "end-theme"}`}>
-        <span className="input-prefix-icon">
-          {iconType === "start" ? <div className="dot start-dot" /> : <div className="dot end-dot" />}
+      <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-surface-container/80 border border-outline-variant/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-sm transition-all">
+        <span className="flex-shrink-0 flex items-center justify-center">
+          {iconType === "start" ? (
+            <span className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(85,238,113,0.7)]" />
+          ) : (
+            <span className="w-2.5 h-2.5 rounded-full bg-secondary shadow-[0_0_8px_rgba(163,201,255,0.7)]" />
+          )}
         </span>
 
         <input
           ref={inputRef}
           type="text"
-          className="location-text-field"
+          className="w-full bg-transparent border-0 p-0 text-on-surface font-body-medium text-body-medium placeholder:text-outline outline-none"
           value={query}
           placeholder={placeholder}
           onChange={(e) => {
@@ -140,8 +144,13 @@ export function LocationSearchInput({
         />
 
         {query && (
-          <button type="button" className="input-clear-btn" onClick={handleClear} aria-label="Clear location">
-            <X size={15} />
+          <button
+            type="button"
+            className="p-1 rounded-full text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors"
+            onClick={handleClear}
+            aria-label="Clear location"
+          >
+            <X size={14} />
           </button>
         )}
       </div>
@@ -149,39 +158,42 @@ export function LocationSearchInput({
       {isOpen && (
         <div className="location-dropdown-menu" role="listbox">
           <div className="dropdown-header">
-            <span>Bengaluru Urban & Rural Locations ({filtered.length} found)</span>
+            <span>Bengaluru Locations ({filtered.length} found)</span>
+            <span className="font-caption-meta text-outline lowercase">select or tap map</span>
           </div>
 
-          {filtered.length > 0 ? (
-            filtered.map((loc, index) => {
-              const isSelected = highlightIndex === index;
-              const isUrban = loc.district === "Bangalore Urban";
-              return (
-                <div
-                  key={loc.id}
-                  className={`dropdown-item ${isSelected ? "highlighted" : ""}`}
-                  onClick={() => handleSelect(loc)}
-                  onMouseEnter={() => setHighlightIndex(index)}
-                  role="option"
-                  aria-selected={isSelected}
-                >
-                  <MapPin size={15} className="dropdown-pin-icon" />
-                  <div className="dropdown-item-content">
-                    <span className="dropdown-item-title">{loc.name}</span>
-                    <span className="dropdown-item-subtitle">{loc.area}</span>
+          <div className="overflow-y-auto max-h-56">
+            {filtered.length > 0 ? (
+              filtered.map((loc, index) => {
+                const isSelected = highlightIndex === index;
+                const isUrban = loc.district === "Bangalore Urban";
+                return (
+                  <div
+                    key={loc.id}
+                    className={`dropdown-item ${isSelected ? "highlighted" : ""}`}
+                    onClick={() => handleSelect(loc)}
+                    onMouseEnter={() => setHighlightIndex(index)}
+                    role="option"
+                    aria-selected={isSelected}
+                  >
+                    <MapPin size={15} className="text-primary flex-shrink-0" />
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <span className="dropdown-item-title">{loc.name}</span>
+                      <span className="dropdown-item-subtitle">{loc.area}</span>
+                    </div>
+                    <span className={`district-badge ${isUrban ? "badge-urban" : "badge-rural"}`}>
+                      {isUrban ? "Urban" : "Rural"}
+                    </span>
                   </div>
-                  <span className={`district-badge ${isUrban ? "badge-urban" : "badge-rural"}`}>
-                    {isUrban ? "Urban" : "Rural"}
-                  </span>
-                </div>
-              );
-            })
-          ) : (
-            <div className="dropdown-empty-item">
-              <Search size={14} />
-              <span>No predefined location matches &ldquo;{query}&rdquo;. Tap map to choose exact spot.</span>
-            </div>
-          )}
+                );
+              })
+            ) : (
+              <div className="p-3 text-xs text-outline flex items-center gap-2">
+                <Search size={14} />
+                <span>No catalog match for &ldquo;{query}&rdquo;. Tap map to choose point.</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -24,9 +24,9 @@ The operations view is intended for people reviewing road condition coverage and
 
 ## 3. Goals for this version
 
-- Elevate the UI/UX to Apple Human Interface Guidelines (HIG) design standards across all screens and components.
+- Elevate the UI/UX to the Google Stitch AeroNav PRO spatial cyber-navigation HUD interface across all screens and components.
 - Provide a three-way appearance mode switcher (Light, Dark, and System Default) that users can switch at any time.
-- Let riders type and select both the start point and destination with Apple-style search autocomplete.
+- Let riders type and select both the start point and destination with Stitch elevation autocomplete.
 - Cover the Bengaluru Urban and Bengaluru Rural district area in the map and server validation.
 - Let riders find a road by name from a searchable report dropdown.
 - Show an access page before the application, with a prominent guest option and theme toggle.
